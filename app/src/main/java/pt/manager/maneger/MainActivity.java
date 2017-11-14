@@ -12,6 +12,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.BaseColumns;
 import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.provider.Settings;
@@ -31,6 +32,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        fetchContacts();
+        //fetchContacts();
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -84,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }else{
                     if (isNetworkAvailable()) {
-                        //new ServiceStubAsyncTask(MainActivity.this, MainActivity.this).execute();
+                        new ServiceStubAsyncTask(MainActivity.this, MainActivity.this).execute();
                     }
                     //addContact("Coderz","1234567890");
                     Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,null,null, null);
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         values.put(Contacts.People.NUMBER, phone);
         updateUri = getContentResolver().insert(updateUri, values);
     }
+
     public void fetchContacts() {
 
         String phoneNumber = null;
@@ -151,7 +154,23 @@ public class MainActivity extends AppCompatActivity {
                 int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex( HAS_PHONE_NUMBER )));
 
                 if (hasPhoneNumber > 0) {
+                    Cursor noteCursor = null;
+                    try {
+                        noteCursor = getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                                new String[] {ContactsContract.Data._ID, ContactsContract.CommonDataKinds.Note.NOTE},
+                                ContactsContract.Data.RAW_CONTACT_ID + "=?" + " AND "
+                                        + ContactsContract.Data.MIMETYPE + "='" + ContactsContract.CommonDataKinds.Note.CONTENT_ITEM_TYPE + "'",
+                                new String[] {contact_id}, null);
 
+                        if (noteCursor != null && noteCursor.moveToFirst()) {
+                            String note = noteCursor.getString(noteCursor.getColumnIndex(ContactsContract.CommonDataKinds.Note.NOTE));
+                            Log.d("Note: ",note);
+                        }
+                    } finally {
+                        if (noteCursor != null) {
+                            noteCursor.close();
+                        }
+                    }
                     //output.append("\n First Name:" + name);
                     Log.d("Contact ID:",contact_id);
                     Log.d("First Name:",name);
@@ -185,6 +204,27 @@ public class MainActivity extends AppCompatActivity {
             Log.d("Name:","\n");
             //outputText.setText(output);
         }
+    }
+
+    public String getContactDisplayNameByNumber(String number) {
+        Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
+        String name = "?";
+        String contactId = "";
+        ContentResolver contentResolver = getContentResolver();
+        Cursor contactLookup = contentResolver.query(uri, new String[] {BaseColumns._ID,
+                ContactsContract.PhoneLookup.DISPLAY_NAME }, null, null, null);
+        try {
+            if (contactLookup != null && contactLookup.getCount() > 0) {
+                contactLookup.moveToNext();
+                name = contactLookup.getString(contactLookup.getColumnIndex(ContactsContract.Data.DISPLAY_NAME));
+                contactId = contactLookup.getString(contactLookup.getColumnIndex(BaseColumns._ID));
+            }
+        } finally {
+            if (contactLookup != null) {
+                contactLookup.close();
+            }
+        }
+        return contactId;
     }
 
     @Override
@@ -264,9 +304,52 @@ public class MainActivity extends AppCompatActivity {
             JSONArray jsonArray = null;
 
             try {
-
+                //String nome = getContactDisplayNameByNumber("2222");
+                //Log.d("NOMEE: ",nome);Log.d("NOMEE: ","ola");
                 JSONObject jsonResponse = new JSONObject(response);
-                jsonArray = jsonResponse.getJSONArray("users");
+                Log.d("TESTE", String.valueOf(jsonResponse));
+                Iterator keys = jsonResponse.keys();
+                while(keys.hasNext()) {
+                    String dynamicKey = (String)keys.next();
+                    JSONObject line = jsonResponse.getJSONObject(dynamicKey);
+                    if(line.has("contacts")) {
+                        jsonArray = line.getJSONArray("contacts");
+                        for(int i = 0; i < jsonArray.length(); i++) {
+                            String a = jsonArray.getString(i);
+                            JSONObject resultJsonObject = new JSONObject(a);
+
+                            String type = (String) resultJsonObject.get("type");
+                            String tel = (String) resultJsonObject.get("contact_number");
+                            if(type=="1" && tel!=""){
+                                String existe = getContactDisplayNameByNumber(tel);
+                                if(existe!=""){
+                                    Log.d("EXISTE", "1");
+                                }
+                            }
+
+                            //String id2 = (String) resultJsonObject.get("id");
+
+                            Log.d("TYPE", type);
+                        }
+
+                        //String contacts = line.getString("contacts");
+                        //Log.d("CONTACT", String.valueOf(jsonArray));
+                        /*
+                        JSONObject jsonResponse2 = new JSONObject(contacts);
+                        Iterator keys2 = jsonResponse2.keys();
+                        while(keys2.hasNext()) {
+                            String dynamicKey2 = (String)keys2.next();
+                            JSONObject line2 = jsonResponse2.getJSONObject(dynamicKey2);
+                            String tel = line2.getString("contact_number");
+                            Log.d("TEL", tel);
+                        }*/
+                        //JSONObject jsonResponse2 = new JSONObject(String.valueOf(line));
+                        //Log.d("LINE", String.valueOf(line));
+                        //String id = line.getString("id");
+                        //Log.d("ID", id);
+                    }
+                }
+                //jsonArray = jsonResponse.getJSONArray("");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
