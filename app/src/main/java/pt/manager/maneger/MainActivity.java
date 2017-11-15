@@ -2,6 +2,7 @@ package pt.manager.maneger;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -31,6 +32,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -104,18 +106,62 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-    private void addContact(String name, String phone) {
+    private void addContact(String firstname, String lastname, String phone, String email) {
         ContentValues values = new ContentValues();
         values.put(Contacts.People.NUMBER, phone);
         values.put(Contacts.People.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM);
-        values.put(Contacts.People.LABEL, name);
-        values.put(Contacts.People.NAME, name);
+        values.put(Contacts.People.LABEL, firstname);
+        values.put(Contacts.People.NAME, firstname);
         Uri dataUri = getContentResolver().insert(Contacts.People.CONTENT_URI, values);
         Uri updateUri = Uri.withAppendedPath(dataUri, Contacts.People.Phones.CONTENT_DIRECTORY);
         values.clear();
         values.put(Contacts.People.Phones.TYPE, Contacts.People.TYPE_MOBILE);
         values.put(Contacts.People.NUMBER, phone);
         updateUri = getContentResolver().insert(updateUri, values);
+    }
+
+    private void updateContact(String id, String firstname, String lastname, String number, String email){
+
+        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+
+        // Name
+        ContentProviderOperation.Builder builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
+        builder.withSelection(ContactsContract.Data.CONTACT_ID + "=?" + " AND " + ContactsContract.Data.MIMETYPE + "=?", new String[]{String.valueOf(id), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE});
+        builder.withValue(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastname);
+        builder.withValue(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME, firstname);
+        ops.add(builder.build());
+
+        // Number
+        builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
+        builder.withSelection(ContactsContract.Data.CONTACT_ID + "=?" + " AND " + ContactsContract.Data.MIMETYPE + "=?"+ " AND " + ContactsContract.CommonDataKinds.Organization.TYPE + "=?", new String[]{String.valueOf(id), ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, String.valueOf(ContactsContract.CommonDataKinds.Phone.TYPE_HOME)});
+        builder.withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, number);
+        ops.add(builder.build());
+
+
+        // Update
+        try
+        {
+            getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static boolean insertContact(ContentResolver contactAdder, String firstName, String mobileNumber) {
+        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI).withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null).withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null).build());
+
+        ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI).withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0).withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE).withValue(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,firstName).build());
+
+        ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI).withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0).withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE).withValue(ContactsContract.CommonDataKinds.Phone.NUMBER,mobileNumber).withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE).build());
+        try {
+            contactAdder.applyBatch(ContactsContract.AUTHORITY, ops);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
     public void fetchContacts() {
@@ -302,54 +348,44 @@ public class MainActivity extends AppCompatActivity {
             HttpConnectionService service = new HttpConnectionService();
             response = service.sendRequest(apiPath+"?api_key="+android_id, postDataParams);
             JSONArray jsonArray = null;
-
+            int id;
+            String firstname = "";
+            String lastname = "";
+            String number = "";
+            String type = "";
+            String tel = "";
             try {
-                //String nome = getContactDisplayNameByNumber("2222");
-                //Log.d("NOMEE: ",nome);Log.d("NOMEE: ","ola");
                 JSONObject jsonResponse = new JSONObject(response);
-                Log.d("TESTE", String.valueOf(jsonResponse));
                 Iterator keys = jsonResponse.keys();
                 while(keys.hasNext()) {
+                    tel = "";
                     String dynamicKey = (String)keys.next();
                     JSONObject line = jsonResponse.getJSONObject(dynamicKey);
                     if(line.has("contacts")) {
+                        firstname = line.getString("nome");
+                        lastname = line.getString("ultimonome");
                         jsonArray = line.getJSONArray("contacts");
                         for(int i = 0; i < jsonArray.length(); i++) {
                             String a = jsonArray.getString(i);
                             JSONObject resultJsonObject = new JSONObject(a);
-
-                            String type = (String) resultJsonObject.get("type");
-                            String tel = (String) resultJsonObject.get("contact_number");
-                            if(type=="1" && tel!=""){
-                                String existe = getContactDisplayNameByNumber(tel);
-                                if(existe!=""){
-                                    Log.d("EXISTE", "1");
-                                }
+                            type = (String) resultJsonObject.get("type");
+                            if(type.equals("5") || type.equals("1")){
+                                tel = (String) resultJsonObject.get("contact_number");
                             }
-
-                            //String id2 = (String) resultJsonObject.get("id");
-
-                            Log.d("TYPE", type);
                         }
-
-                        //String contacts = line.getString("contacts");
-                        //Log.d("CONTACT", String.valueOf(jsonArray));
-                        /*
-                        JSONObject jsonResponse2 = new JSONObject(contacts);
-                        Iterator keys2 = jsonResponse2.keys();
-                        while(keys2.hasNext()) {
-                            String dynamicKey2 = (String)keys2.next();
-                            JSONObject line2 = jsonResponse2.getJSONObject(dynamicKey2);
-                            String tel = line2.getString("contact_number");
-                            Log.d("TEL", tel);
-                        }*/
-                        //JSONObject jsonResponse2 = new JSONObject(String.valueOf(line));
-                        //Log.d("LINE", String.valueOf(line));
-                        //String id = line.getString("id");
-                        //Log.d("ID", id);
+                        if(tel!=""){
+                            Log.d("Tipo", type+" "+tel);
+                            String id_cont = getContactDisplayNameByNumber(tel);
+                            if(id_cont!=""){
+                                Log.d("UPDATE", id_cont);
+                                updateContact(id_cont,firstname, lastname, tel, email);
+                            }else{
+                                Log.d("INSERT", firstname);
+                                addContact(firstname,lastname, tel, email);
+                            }
+                        }
                     }
                 }
-                //jsonArray = jsonResponse.getJSONArray("");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
