@@ -35,6 +35,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -137,7 +139,11 @@ public class MainActivity extends AppCompatActivity {
         builder.withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, number);
         ops.add(builder.build());
 
-
+        ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                .withValue(ContactsContract.Data.RAW_CONTACT_ID, id)
+                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                .withValue(ContactsContract.CommonDataKinds.Email.DATA, email)
+                .build());
         // Update
         try
         {
@@ -149,15 +155,36 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public static boolean insertContact(ContentResolver contactAdder, String firstName, String mobileNumber) {
+    private static Uri addCallerIsSyncAdapterParameter(Uri uri, boolean isSyncOperation) {
+        if (isSyncOperation) {
+            return uri.buildUpon()
+                    .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")
+                    .build();
+        }
+        return uri;
+    }
+    public static boolean insertContact(Context context, String firstName, String lastname, String number, String email) {
+
+        ContentResolver resolver = context.getContentResolver();
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
-        ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI).withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null).withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null).build());
-
-        ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI).withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0).withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE).withValue(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,firstName).build());
-
-        ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI).withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0).withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE).withValue(ContactsContract.CommonDataKinds.Phone.NUMBER,mobileNumber).withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE).build());
+        ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
+                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                .withValue(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME, firstName)
+                .withValue(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastname)
+                .build());
+        ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
+                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                .withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, number)
+                .build());
+        ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
+                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                .withValue(ContactsContract.CommonDataKinds.Email.DATA, email)
+                .build());
         try {
-            contactAdder.applyBatch(ContactsContract.AUTHORITY, ops);
+            resolver.applyBatch(ContactsContract.AUTHORITY, ops);
         } catch (Exception e) {
             return false;
         }
@@ -354,11 +381,13 @@ public class MainActivity extends AppCompatActivity {
             String number = "";
             String type = "";
             String tel = "";
+            String email = "";
             try {
                 JSONObject jsonResponse = new JSONObject(response);
                 Iterator keys = jsonResponse.keys();
                 while(keys.hasNext()) {
                     tel = "";
+                    email = "";
                     String dynamicKey = (String)keys.next();
                     JSONObject line = jsonResponse.getJSONObject(dynamicKey);
                     if(line.has("contacts")) {
@@ -372,15 +401,17 @@ public class MainActivity extends AppCompatActivity {
                             if(type.equals("5") || type.equals("1")){
                                 tel = (String) resultJsonObject.get("contact_number");
                             }
+                            if(type.equals("4")){
+                                email = (String) resultJsonObject.get("contact_number");
+                            }
                         }
+                        //Log.d("TT:",email);
                         if(tel!=""){
-                            Log.d("Tipo", type+" "+tel);
                             String id_cont = getContactDisplayNameByNumber(tel);
                             if(id_cont!=""){
-                                Log.d("UPDATE", id_cont);
                                 updateContact(id_cont,firstname, lastname, tel, email);
                             }else{
-                                Log.d("INSERT", firstname);
+                                //insertContact(mContext,firstname,lastname, tel, email);
                                 addContact(firstname,lastname, tel, email);
                             }
                         }
