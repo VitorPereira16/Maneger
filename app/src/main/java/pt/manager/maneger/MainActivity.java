@@ -108,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-    private void addContact(String firstname, String lastname, String phone, String email, String[] numeros) {
+    private void addContact(String firstname, String lastname, String phone, String email, String[] numeros, String telf) {
         String DisplayName = "XYZ";
         String MobileNumber = "123456";
         String HomeNumber = "1111";
@@ -243,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
         updateUri = getContentResolver().insert(updateUri, values);*/
     }
 
-    private void updateContact(String id, String firstname, String lastname, String number, String email, String[] numeros){
+    private void updateContact(String id, String firstname, String lastname, String number, String email, String[] numeros, String telf){
 
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 
@@ -543,12 +543,14 @@ public class MainActivity extends AppCompatActivity {
             String type = "";
             String tel = "";
             String email = "";
+            String telf = "";
             try {
                 JSONObject jsonResponse = new JSONObject(response);
                 Iterator keys = jsonResponse.keys();
                 int y = 0;
                 while(keys.hasNext()) {
                     tel = "";
+                    telf = "";
                     email = "";
                     String dynamicKey = (String)keys.next();
                     JSONObject line = jsonResponse.getJSONObject(dynamicKey);
@@ -560,12 +562,11 @@ public class MainActivity extends AppCompatActivity {
                             String a = jsonArray.getString(i);
                             JSONObject resultJsonObject = new JSONObject(a);
                             type = (String) resultJsonObject.get("type");
-                            if(type.equals("5") || type.equals("1")){
+                            if(type.equals("5")){
+                                telf = (String) resultJsonObject.get("contact_number");
+                            }else if(type.equals("1")){
                                 tel = (String) resultJsonObject.get("contact_number");
-                                numeros[y] = tel;
-                                y++;
-                            }
-                            if(type.equals("4")){
+                            }else if(type.equals("4")){
                                 email = (String) resultJsonObject.get("contact_number");
                             }
                         }
@@ -573,10 +574,10 @@ public class MainActivity extends AppCompatActivity {
                         if(tel!=""){
                             String id_cont = getContactDisplayNameByNumber(tel);
                             if(id_cont!=""){
-                                updateContact(id_cont,firstname, lastname, tel, email, numeros);
+                                updateContact(id_cont,firstname, lastname, tel, email, numeros, telf);
                             }else{
                                 //insertContact(mContext,firstname,lastname, tel, email);
-                                addContact(firstname,lastname, tel, email, numeros);
+                                addContact(firstname,lastname, tel, email, numeros, telf);
                             }
                         }
                     }
