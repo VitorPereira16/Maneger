@@ -108,7 +108,128 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-    private void addContact(String firstname, String lastname, String phone, String email) {
+    private void addContact(String firstname, String lastname, String phone, String email, String[] numeros) {
+        String DisplayName = "XYZ";
+        String MobileNumber = "123456";
+        String HomeNumber = "1111";
+        String WorkNumber = "2222";
+        String emailID = "email@nomail.com";
+        String company = "bad";
+        String jobTitle = "abcd";
+        String FamilyName = "";
+        String Name = "";
+
+        ArrayList < ContentProviderOperation > ops = new ArrayList < ContentProviderOperation > ();
+
+        ops.add(ContentProviderOperation.newInsert(
+                ContactsContract.RawContacts.CONTENT_URI)
+                .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
+                .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null)
+                .build());
+
+        //------------------------------------------------------ Names
+        if (Name != null) {
+            ops.add(ContentProviderOperation.newInsert(
+                    ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                    .withValue(
+                            ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,
+                            Name).build());
+        }
+
+        if (DisplayName != null) {
+            ops.add(ContentProviderOperation.newInsert(
+                    ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                    .withValue(
+                            ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME,
+                            FamilyName).build());
+        }
+
+        if (DisplayName != null) {
+            ops.add(ContentProviderOperation.newInsert(
+                    ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                    .withValue(
+                            ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME,
+                            DisplayName).build());
+        }
+
+        //------------------------------------------------------ Mobile Number
+        if (MobileNumber != null) {
+            ops.add(ContentProviderOperation.
+                    newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, MobileNumber)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE,
+                            ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
+                    .build());
+        }
+
+        //------------------------------------------------------ Home Numbers
+        if (HomeNumber != null) {
+            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, HomeNumber)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE,
+                            ContactsContract.CommonDataKinds.Phone.TYPE_HOME)
+                    .build());
+        }
+
+        //------------------------------------------------------ Work Numbers
+        if (WorkNumber != null) {
+            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, WorkNumber)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE,
+                            ContactsContract.CommonDataKinds.Phone.TYPE_WORK)
+                    .build());
+        }
+
+        //------------------------------------------------------ Email
+        if (emailID != null) {
+            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Email.DATA, emailID)
+                    .withValue(ContactsContract.CommonDataKinds.Email.TYPE, ContactsContract.CommonDataKinds.Email.TYPE_WORK)
+                    .build());
+        }
+
+        //------------------------------------------------------ Organization
+        if (!company.equals("") && !jobTitle.equals("")) {
+            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE,
+                            ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Organization.COMPANY, company)
+                    .withValue(ContactsContract.CommonDataKinds.Organization.TYPE, ContactsContract.CommonDataKinds.Organization.TYPE_WORK)
+                    .withValue(ContactsContract.CommonDataKinds.Organization.TITLE, jobTitle)
+                    .withValue(ContactsContract.CommonDataKinds.Organization.TYPE, ContactsContract.CommonDataKinds.Organization.TYPE_WORK)
+                    .build());
+        }
+
+        // Asking the Contact provider to create a new contact
+        try {
+            getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        /*
         ContentValues values = new ContentValues();
         values.put(Contacts.People.NUMBER, phone);
         values.put(Contacts.People.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM);
@@ -119,10 +240,10 @@ public class MainActivity extends AppCompatActivity {
         values.clear();
         values.put(Contacts.People.Phones.TYPE, Contacts.People.TYPE_MOBILE);
         values.put(Contacts.People.NUMBER, phone);
-        updateUri = getContentResolver().insert(updateUri, values);
+        updateUri = getContentResolver().insert(updateUri, values);*/
     }
 
-    private void updateContact(String id, String firstname, String lastname, String number, String email){
+    private void updateContact(String id, String firstname, String lastname, String number, String email, String[] numeros){
 
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 
@@ -300,6 +421,46 @@ public class MainActivity extends AppCompatActivity {
         return contactId;
     }
 
+    public String getContactDisplayNameByNote(String number) {
+        Uri CONTENT_URI = ContactsContract.Contacts.CONTENT_URI;
+        StringBuffer output = new StringBuffer();
+
+        ContentResolver contentResolver = getContentResolver();
+
+        Cursor cursor = contentResolver.query(CONTENT_URI, null,null, null, null);
+        if (cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                String contact_id = cursor.getString(cursor.getColumnIndex( ContactsContract.Contacts._ID ));
+                String name = cursor.getString(cursor.getColumnIndex( ContactsContract.Contacts.DISPLAY_NAME ));
+
+                int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex( ContactsContract.Contacts.HAS_PHONE_NUMBER )));
+
+                if (hasPhoneNumber > 0) {
+                    Cursor noteCursor = null;
+                    try {
+                        noteCursor = getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                                new String[] {ContactsContract.Data._ID, ContactsContract.CommonDataKinds.Note.NOTE},
+                                ContactsContract.Data.RAW_CONTACT_ID + "=?" + " AND "
+                                        + ContactsContract.Data.MIMETYPE + "='" + ContactsContract.CommonDataKinds.Note.CONTENT_ITEM_TYPE + "'",
+                                new String[] {contact_id}, null);
+
+                        if (noteCursor != null && noteCursor.moveToFirst()) {
+                            String note = noteCursor.getString(noteCursor.getColumnIndex(ContactsContract.CommonDataKinds.Note.NOTE));
+                            Log.d("Note: ",note);
+                        }
+                    } finally {
+                        if (noteCursor != null) {
+                            noteCursor.close();
+                        }
+                    }
+                }
+
+            }
+
+        }
+        return "ok";
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
@@ -366,7 +527,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... arg0) {
-
+            String[] numeros = new String[20];
             postDataParams = new HashMap<String, String>();
             postDataParams.put("HTTP_ACCEPT", "application/json");
             String android_id = Settings.Secure.getString(mContext.getContentResolver(),
@@ -385,6 +546,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 JSONObject jsonResponse = new JSONObject(response);
                 Iterator keys = jsonResponse.keys();
+                int y = 0;
                 while(keys.hasNext()) {
                     tel = "";
                     email = "";
@@ -400,6 +562,8 @@ public class MainActivity extends AppCompatActivity {
                             type = (String) resultJsonObject.get("type");
                             if(type.equals("5") || type.equals("1")){
                                 tel = (String) resultJsonObject.get("contact_number");
+                                numeros[y] = tel;
+                                y++;
                             }
                             if(type.equals("4")){
                                 email = (String) resultJsonObject.get("contact_number");
@@ -409,10 +573,10 @@ public class MainActivity extends AppCompatActivity {
                         if(tel!=""){
                             String id_cont = getContactDisplayNameByNumber(tel);
                             if(id_cont!=""){
-                                updateContact(id_cont,firstname, lastname, tel, email);
+                                updateContact(id_cont,firstname, lastname, tel, email, numeros);
                             }else{
                                 //insertContact(mContext,firstname,lastname, tel, email);
-                                addContact(firstname,lastname, tel, email);
+                                addContact(firstname,lastname, tel, email, numeros);
                             }
                         }
                     }
