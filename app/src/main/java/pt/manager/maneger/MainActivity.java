@@ -4,7 +4,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -14,7 +13,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.BaseColumns;
-import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
@@ -35,8 +33,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -108,19 +104,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-    private void addContact(String firstname, String lastname, String phone, String email) {
-        ContentValues values = new ContentValues();
-        values.put(Contacts.People.NUMBER, phone);
-        values.put(Contacts.People.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM);
-        values.put(Contacts.People.LABEL, firstname);
-        values.put(Contacts.People.NAME, firstname);
-        Uri dataUri = getContentResolver().insert(Contacts.People.CONTENT_URI, values);
-        Uri updateUri = Uri.withAppendedPath(dataUri, Contacts.People.Phones.CONTENT_DIRECTORY);
-        values.clear();
-        values.put(Contacts.People.Phones.TYPE, Contacts.People.TYPE_MOBILE);
-        values.put(Contacts.People.NUMBER, phone);
-        updateUri = getContentResolver().insert(updateUri, values);
-    }
+
 
     private void updateContact(String id, String firstname, String lastname, String number, String email){
 
@@ -163,10 +147,16 @@ public class MainActivity extends AppCompatActivity {
         }
         return uri;
     }
-    public static boolean insertContact(Context context, String firstName, String lastname, String number, String email) {
-
-        ContentResolver resolver = context.getContentResolver();
+    public boolean insertContact(String firstName, String lastname, String number, String email, String id) {
+        //ContentResolver resolver = context.getContentResolver();
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+
+        ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
+                //.withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, accountType)
+                //.withValue(ContactsContract.RawContacts.ACCOUNT_NAME, accountName)
+                .withValue(ContactsContract.RawContacts.SYNC1, id)
+                .build());
+        Log.d("First id:",id);
         ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
                 .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
                 .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
@@ -183,13 +173,16 @@ public class MainActivity extends AppCompatActivity {
                 .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
                 .withValue(ContactsContract.CommonDataKinds.Email.DATA, email)
                 .build());
+
         try {
-            resolver.applyBatch(ContactsContract.AUTHORITY, ops);
+            //resolver.applyBatch(ContactsContract.AUTHORITY, ops);
+            getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
         } catch (Exception e) {
             return false;
         }
         return true;
     }
+
 
     public void fetchContacts() {
 
@@ -223,37 +216,31 @@ public class MainActivity extends AppCompatActivity {
 
                 String contact_id = cursor.getString(cursor.getColumnIndex( _ID ));
                 String name = cursor.getString(cursor.getColumnIndex( DISPLAY_NAME ));
+                //String SYSNC = cursor.getString(cursor.getColumnIndex( ContactsContract.RawContacts.SYNC1 ));
 
+                String sync1 = null;
+                int sync1Index = cursor.getColumnIndex(ContactsContract.RawContacts.SYNC1);
+                //if (sync1Index >= 0) {
+                    sync1 = cursor.getString(sync1Index);
+                //}
+
+                System.out.println(" sync1=" + sync1);
                 int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex( HAS_PHONE_NUMBER )));
 
                 if (hasPhoneNumber > 0) {
-                    Cursor noteCursor = null;
-                    try {
-                        noteCursor = getContentResolver().query(ContactsContract.Data.CONTENT_URI,
-                                new String[] {ContactsContract.Data._ID, ContactsContract.CommonDataKinds.Note.NOTE},
-                                ContactsContract.Data.RAW_CONTACT_ID + "=?" + " AND "
-                                        + ContactsContract.Data.MIMETYPE + "='" + ContactsContract.CommonDataKinds.Note.CONTENT_ITEM_TYPE + "'",
-                                new String[] {contact_id}, null);
 
-                        if (noteCursor != null && noteCursor.moveToFirst()) {
-                            String note = noteCursor.getString(noteCursor.getColumnIndex(ContactsContract.CommonDataKinds.Note.NOTE));
-                            Log.d("Note: ",note);
-                        }
-                    } finally {
-                        if (noteCursor != null) {
-                            noteCursor.close();
-                        }
-                    }
                     //output.append("\n First Name:" + name);
                     Log.d("Contact ID:",contact_id);
                     Log.d("First Name:",name);
+                    //Log.d("SYSNC:",SYSNC);
+
                     // Query and loop for every phone number of the contact
                     Cursor phoneCursor = contentResolver.query(PhoneCONTENT_URI, null, Phone_CONTACT_ID + " = ?", new String[] { contact_id }, null);
 
                     while (phoneCursor.moveToNext()) {
                         phoneNumber = phoneCursor.getString(phoneCursor.getColumnIndex(NUMBER));
                         //output.append("\n Phone number:" + phoneNumber);
-                        Log.d("Phone number:",phoneNumber);
+                        //Log.d("Phone number:",phoneNumber);
                     }
 
                     phoneCursor.close();
@@ -264,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
                     while (emailCursor.moveToNext()) {
 
                         email = emailCursor.getString(emailCursor.getColumnIndex(DATA));
-                        Log.d("EMAIL:",email);
+                        //Log.d("EMAIL:",email);
                         //output.append("\nEmail:" + email);
 
                     }
@@ -277,6 +264,31 @@ public class MainActivity extends AppCompatActivity {
             Log.d("Name:","\n");
             //outputText.setText(output);
         }
+    }
+
+    public String getContactBySYSNC(String sysnc_id) {
+        ContentResolver cr = this.getContentResolver();
+        String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1,BaseColumns._ID };
+        String selection = ContactsContract.RawContacts.SYNC1 + " = '" + sysnc_id + "'";
+        Cursor cur = cr.query(ContactsContract.RawContacts.CONTENT_URI, null, selection, null, null);
+        String name = "?";
+        String contactId = "";
+        String rawId = "";
+        String raw_Id = "";
+        try {
+            if (cur != null && cur.getCount() > 0) {
+                cur.moveToNext();
+                rawId = cur.getString(0);
+                contactId = cur.getString(1);
+                String sync1 = cur.getString(2);
+                raw_Id = cur.getString(cur.getColumnIndex(BaseColumns._ID));
+            }
+        } finally {
+            if (cur != null) {
+                cur.close();
+            }
+        }
+        return raw_Id;
     }
 
     public String getContactDisplayNameByNumber(String number) {
@@ -375,7 +387,7 @@ public class MainActivity extends AppCompatActivity {
             HttpConnectionService service = new HttpConnectionService();
             response = service.sendRequest(apiPath+"?api_key="+android_id, postDataParams);
             JSONArray jsonArray = null;
-            int id;
+            String id;
             String firstname = "";
             String lastname = "";
             String number = "";
@@ -388,9 +400,11 @@ public class MainActivity extends AppCompatActivity {
                 while(keys.hasNext()) {
                     tel = "";
                     email = "";
+                    id = "";
                     String dynamicKey = (String)keys.next();
                     JSONObject line = jsonResponse.getJSONObject(dynamicKey);
                     if(line.has("contacts")) {
+                        id = line.getString("id");
                         firstname = line.getString("nome");
                         lastname = line.getString("ultimonome");
                         jsonArray = line.getJSONArray("contacts");
@@ -405,15 +419,16 @@ public class MainActivity extends AppCompatActivity {
                                 email = (String) resultJsonObject.get("contact_number");
                             }
                         }
-                        //Log.d("TT:",email);
-                        if(tel!=""){
-                            String id_cont = getContactDisplayNameByNumber(tel);
-                            if(id_cont!=""){
-                                updateContact(id_cont,firstname, lastname, tel, email);
-                            }else{
-                                //insertContact(mContext,firstname,lastname, tel, email);
-                                addContact(firstname,lastname, tel, email);
-                            }
+                        Log.d("ID:",id);
+                        String id_cont = getContactBySYSNC(id);
+                        Log.d("ID_CONT:",id_cont);
+                        //String id_cont = getContactDisplayNameByNumber(tel);
+                        if(id_cont!=""){
+                            Log.d("UPDATE:", "EXISTE");
+                            updateContact(id_cont,firstname, lastname, tel, email);
+                        }else{
+                            Log.d("INSERT:", "NAO EXISTE");
+                            insertContact(firstname,lastname, tel, email,id);
                         }
                     }
                 }
