@@ -263,9 +263,6 @@ public class MainActivity extends AppCompatActivity {
 
                 String sync1 = null;
                 int sync1Index = cursor.getColumnIndex(ContactsContract.RawContacts.SYNC1);
-                //if (sync1Index >= 0) {
-                    sync1 = cursor.getString(sync1Index);
-                //}
 
                 System.out.println(" sync1=" + sync1);
                 int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex( HAS_PHONE_NUMBER )));
@@ -301,37 +298,32 @@ public class MainActivity extends AppCompatActivity {
 
                     emailCursor.close();
                 }
-
-                //output.append("\n");
             }
             Log.d("Name:","\n");
-            //outputText.setText(output);
         }
     }
 
     public String getContactBySYSNC(String sysnc_id) {
         ContentResolver cr = this.getContentResolver();
-        String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1, BaseColumns._ID };
+        //String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1, BaseColumns._ID };
         String selection = ContactsContract.RawContacts.SYNC1 + " = '" + sysnc_id + "'";
-        Cursor cur = cr.query(ContactsContract.RawContacts.CONTENT_URI, projection, selection, null, null);
-        String name = "?";
+        Cursor cur = cr.query(ContactsContract.RawContacts.CONTENT_URI, null, selection, null, null);
         String contactId = "";
-        String rawId = "";
-        String raw_Id = "";
+
         try {
             if (cur != null && cur.getCount() > 0) {
                 cur.moveToNext();
-                rawId = cur.getString(0);
-                contactId = cur.getString(1);
-                String sync1 = cur.getString(2);
-                raw_Id = cur.getString(cur.getColumnIndex(ContactsContract.RawContacts._ID));
+                contactId = cur.getString(cur.getColumnIndex( ContactsContract.RawContacts.CONTACT_ID ));
+                //Log.d("Note: ",contactId);
+                Log.v("MyTag", String.valueOf(contactId));
             }
         } finally {
             if (cur != null) {
                 cur.close();
             }
         }
-        return raw_Id;
+
+        return contactId;
     }
 
     public String getContactDisplayNameByNumber(String number) {
@@ -498,14 +490,17 @@ public class MainActivity extends AppCompatActivity {
                             lstObject.add(c);
                         }
 
+                        System.out.println("ID: " + id);
                         String id_cont = getContactBySYSNC(id);
-                        if (id_cont != "") {
+                        System.out.println("IDC: " + id_cont);
+                        if (id_cont != null && !id_cont.isEmpty()) {
                             Log.d("UPDATE:", "EXISTE");
                             updateContact(id_cont, firstname, lastname, lstObject);
                         } else {
                             Log.d("INSERT:", "NAO EXISTE");
                             insertContact(firstname, lastname, id, lstObject);
                         }
+
                     }
                 }
             } catch (JSONException e) {
