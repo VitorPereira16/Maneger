@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -104,167 +105,54 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-<<<<<<< HEAD
 
-=======
-    private void addContact(String firstname, String lastname, String phone, String email, String[] numeros, String telf) {
-        String DisplayName = "XYZ";
-        String MobileNumber = "123456";
-        String HomeNumber = "1111";
-        String WorkNumber = "2222";
-        String emailID = "email@nomail.com";
-        String company = "bad";
-        String jobTitle = "abcd";
-        String FamilyName = "";
-        String Name = "";
-
-        ArrayList < ContentProviderOperation > ops = new ArrayList < ContentProviderOperation > ();
-
-        ops.add(ContentProviderOperation.newInsert(
-                ContactsContract.RawContacts.CONTENT_URI)
-                .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
-                .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null)
-                .build());
-
-        //------------------------------------------------------ Names
-        if (Name != null) {
-            ops.add(ContentProviderOperation.newInsert(
-                    ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                    .withValue(
-                            ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,
-                            Name).build());
-        }
-
-        if (DisplayName != null) {
-            ops.add(ContentProviderOperation.newInsert(
-                    ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                    .withValue(
-                            ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME,
-                            FamilyName).build());
-        }
-
-        if (DisplayName != null) {
-            ops.add(ContentProviderOperation.newInsert(
-                    ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                    .withValue(
-                            ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME,
-                            DisplayName).build());
-        }
-
-        //------------------------------------------------------ Mobile Number
-        if (MobileNumber != null) {
-            ops.add(ContentProviderOperation.
-                    newInsert(ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, MobileNumber)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE,
-                            ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
-                    .build());
-        }
-
-        //------------------------------------------------------ Home Numbers
-        if (HomeNumber != null) {
-            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, HomeNumber)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE,
-                            ContactsContract.CommonDataKinds.Phone.TYPE_HOME)
-                    .build());
-        }
-
-        //------------------------------------------------------ Work Numbers
-        if (WorkNumber != null) {
-            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, WorkNumber)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE,
-                            ContactsContract.CommonDataKinds.Phone.TYPE_WORK)
-                    .build());
-        }
-
-        //------------------------------------------------------ Email
-        if (emailID != null) {
-            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.Email.DATA, emailID)
-                    .withValue(ContactsContract.CommonDataKinds.Email.TYPE, ContactsContract.CommonDataKinds.Email.TYPE_WORK)
-                    .build());
-        }
-
-        //------------------------------------------------------ Organization
-        if (!company.equals("") && !jobTitle.equals("")) {
-            ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                    .withValue(ContactsContract.Data.MIMETYPE,
-                            ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.Organization.COMPANY, company)
-                    .withValue(ContactsContract.CommonDataKinds.Organization.TYPE, ContactsContract.CommonDataKinds.Organization.TYPE_WORK)
-                    .withValue(ContactsContract.CommonDataKinds.Organization.TITLE, jobTitle)
-                    .withValue(ContactsContract.CommonDataKinds.Organization.TYPE, ContactsContract.CommonDataKinds.Organization.TYPE_WORK)
-                    .build());
-        }
-
-        // Asking the Contact provider to create a new contact
-        try {
-            getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        /*
-        ContentValues values = new ContentValues();
-        values.put(Contacts.People.NUMBER, phone);
-        values.put(Contacts.People.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM);
-        values.put(Contacts.People.LABEL, firstname);
-        values.put(Contacts.People.NAME, firstname);
-        Uri dataUri = getContentResolver().insert(Contacts.People.CONTENT_URI, values);
-        Uri updateUri = Uri.withAppendedPath(dataUri, Contacts.People.Phones.CONTENT_DIRECTORY);
-        values.clear();
-        values.put(Contacts.People.Phones.TYPE, Contacts.People.TYPE_MOBILE);
-        values.put(Contacts.People.NUMBER, phone);
-        updateUri = getContentResolver().insert(updateUri, values);*/
-    }
->>>>>>> 6bc9febf145ad888d9ae28f4ccace6a2789b22dd
-
-    private void updateContact(String id, String firstname, String lastname, String number, String email, String[] numeros, String telf){
+    private void updateContact(String id, String firstname, String lastname, List<Object> arr) {
 
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 
+        String where1 = ContactsContract.Data.CONTACT_ID + " = ? AND " +
+                ContactsContract.Data.MIMETYPE + " = ?";
+
+        String[] emailParams = new String[]{id, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE};
+        String[] nameParams = new String[]{id, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE};
+
         // Name
         ContentProviderOperation.Builder builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
-        builder.withSelection(ContactsContract.Data.CONTACT_ID + "=?" + " AND " + ContactsContract.Data.MIMETYPE + "=?", new String[]{String.valueOf(id), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE});
+        builder.withSelection(where1, nameParams);
         builder.withValue(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastname);
         builder.withValue(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME, firstname);
         ops.add(builder.build());
 
-        // Number
-        builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
-        builder.withSelection(ContactsContract.Data.CONTACT_ID + "=?" + " AND " + ContactsContract.Data.MIMETYPE + "=?"+ " AND " + ContactsContract.CommonDataKinds.Organization.TYPE + "=?", new String[]{String.valueOf(id), ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, String.valueOf(ContactsContract.CommonDataKinds.Phone.TYPE_HOME)});
-        builder.withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, number);
-        ops.add(builder.build());
+        for (Object obj : arr){
+            Contact c = (Contact) obj;
+            String type = c.getType();
+            if (type.equals("5")) {
+                String where = ContactsContract.Data.CONTACT_ID + " = ? AND " +
+                        ContactsContract.Data.MIMETYPE + " = ? AND " + ContactsContract.CommonDataKinds.Phone.TYPE + "=?";
+                String[] numberParams = new String[]{id, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, String.valueOf(ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)};
+                // Number TELEMOVEL
+                builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
+                builder.withSelection(where, numberParams);
+                builder.withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, c.getContact_number());
+                ops.add(builder.build());
+            } else if (type.equals("1")) {
+                String where = ContactsContract.Data.CONTACT_ID + " = ? AND " +
+                        ContactsContract.Data.MIMETYPE + " = ? AND " + ContactsContract.CommonDataKinds.Phone.TYPE + "=?";
+                String[] numberParams = new String[]{id, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, String.valueOf(ContactsContract.CommonDataKinds.Phone.TYPE_HOME)};
+                // Number TELEFONE
+                builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
+                builder.withSelection(where, numberParams);
+                builder.withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, c.getContact_number());
+                ops.add(builder.build());
+            } else if (type.equals("4")) {
+                //EMAIL
+                builder = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI);
+                builder.withSelection(where1, emailParams);
+                builder.withValue(ContactsContract.CommonDataKinds.Email.DATA, c.getContact_number());
+                ops.add(builder.build());
+            }
+        }
 
-        ops.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                .withValue(ContactsContract.Data.RAW_CONTACT_ID, id)
-                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                .withValue(ContactsContract.CommonDataKinds.Email.DATA, email)
-                .build());
         // Update
         try
         {
@@ -276,40 +164,49 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static Uri addCallerIsSyncAdapterParameter(Uri uri, boolean isSyncOperation) {
-        if (isSyncOperation) {
-            return uri.buildUpon()
-                    .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")
-                    .build();
-        }
-        return uri;
-    }
-    public boolean insertContact(String firstName, String lastname, String number, String email, String id) {
+    public boolean insertContact(String firstName, String lastname, String id, List<Object> arr) {
         //ContentResolver resolver = context.getContentResolver();
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 
         ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
-                //.withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, accountType)
-                //.withValue(ContactsContract.RawContacts.ACCOUNT_NAME, accountName)
                 .withValue(ContactsContract.RawContacts.SYNC1, id)
                 .build());
-        Log.d("First id:",id);
+
         ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
                 .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
                 .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
                 .withValue(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME, firstName)
                 .withValue(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastname)
                 .build());
-        ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
-                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                .withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, number)
-                .build());
-        ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
-                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
-                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                .withValue(ContactsContract.CommonDataKinds.Email.DATA, email)
-                .build());
+
+        for (Object obj : arr){
+            Contact c = (Contact) obj;
+            String type = c.getType();
+            if (type.equals("5")) {
+                // Number TELEMOVEL
+                ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
+                        .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                        .withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                        .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, c.getContact_number())
+                        .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
+                        .build());
+            } else if (type.equals("1")) {
+                // Number TELEFONE
+                ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
+                        .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                        .withValue(ContactsContract.Data.MIMETYPE,ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                        .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, c.getContact_number())
+                        .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_HOME)
+                        .build());
+            } else if (type.equals("4")) {
+                //EMAIL
+                ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
+                        .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                        .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                        .withValue(ContactsContract.CommonDataKinds.Email.DATA, c.getContact_number())
+                        .build());
+            }
+        }
 
         try {
             //resolver.applyBatch(ContactsContract.AUTHORITY, ops);
@@ -318,6 +215,15 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
         return true;
+    }
+
+    private static Uri addCallerIsSyncAdapterParameter(Uri uri, boolean isSyncOperation) {
+        if (isSyncOperation) {
+            return uri.buildUpon()
+                    .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")
+                    .build();
+        }
+        return uri;
     }
 
 
@@ -405,9 +311,9 @@ public class MainActivity extends AppCompatActivity {
 
     public String getContactBySYSNC(String sysnc_id) {
         ContentResolver cr = this.getContentResolver();
-        String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1,BaseColumns._ID };
+        String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1, BaseColumns._ID };
         String selection = ContactsContract.RawContacts.SYNC1 + " = '" + sysnc_id + "'";
-        Cursor cur = cr.query(ContactsContract.RawContacts.CONTENT_URI, null, selection, null, null);
+        Cursor cur = cr.query(ContactsContract.RawContacts.CONTENT_URI, projection, selection, null, null);
         String name = "?";
         String contactId = "";
         String rawId = "";
@@ -418,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
                 rawId = cur.getString(0);
                 contactId = cur.getString(1);
                 String sync1 = cur.getString(2);
-                raw_Id = cur.getString(cur.getColumnIndex(BaseColumns._ID));
+                raw_Id = cur.getString(cur.getColumnIndex(ContactsContract.RawContacts._ID));
             }
         } finally {
             if (cur != null) {
@@ -543,6 +449,8 @@ public class MainActivity extends AppCompatActivity {
         String response = "";
         HashMap<String, String> postDataParams;
 
+
+
         public ServiceStubAsyncTask(Context context, Activity activity) {
             mContext = context;
             mActivity = activity;
@@ -560,68 +468,43 @@ public class MainActivity extends AppCompatActivity {
             postDataParams.put("HTTP_ACCEPT", "application/json");
             String android_id = Settings.Secure.getString(mContext.getContentResolver(),
                     Settings.Secure.ANDROID_ID);
+
             Log.d("Name:", apiPath+"?api_key="+android_id);
+
             HttpConnectionService service = new HttpConnectionService();
             response = service.sendRequest(apiPath+"?api_key="+android_id, postDataParams);
             JSONArray jsonArray = null;
             String id;
             String firstname = "";
             String lastname = "";
-            String number = "";
-            String type = "";
-            String tel = "";
-            String email = "";
-            String telf = "";
+
             try {
                 JSONObject jsonResponse = new JSONObject(response);
                 Iterator keys = jsonResponse.keys();
-                int y = 0;
                 while(keys.hasNext()) {
-                    tel = "";
-                    telf = "";
-                    email = "";
-                    id = "";
-                    String dynamicKey = (String)keys.next();
+                    List<Object> lstObject = new ArrayList<Object>();
+                    String dynamicKey = (String) keys.next();
                     JSONObject line = jsonResponse.getJSONObject(dynamicKey);
-                    if(line.has("contacts")) {
+                    if (line.has("contacts")) {
                         id = line.getString("id");
                         firstname = line.getString("nome");
                         lastname = line.getString("ultimonome");
                         jsonArray = line.getJSONArray("contacts");
-                        for(int i = 0; i < jsonArray.length(); i++) {
+                        for (int i = 0; i < jsonArray.length(); i++) {
+
                             String a = jsonArray.getString(i);
                             JSONObject resultJsonObject = new JSONObject(a);
-                            type = (String) resultJsonObject.get("type");
-                            if(type.equals("5")){
-                                telf = (String) resultJsonObject.get("contact_number");
-                            }else if(type.equals("1")){
-                                tel = (String) resultJsonObject.get("contact_number");
-                            }else if(type.equals("4")){
-                                email = (String) resultJsonObject.get("contact_number");
-                            }
+                            Contact c = new Contact((String) resultJsonObject.get("id"), (String) resultJsonObject.get("type"), (String) resultJsonObject.get("type_name"), (String) resultJsonObject.get("contact_name"), (String) resultJsonObject.get("contact_number"));
+                            lstObject.add(c);
                         }
-<<<<<<< HEAD
-                        Log.d("ID:",id);
+
                         String id_cont = getContactBySYSNC(id);
-                        Log.d("ID_CONT:",id_cont);
-                        //String id_cont = getContactDisplayNameByNumber(tel);
-                        if(id_cont!=""){
+                        if (id_cont != "") {
                             Log.d("UPDATE:", "EXISTE");
-                            updateContact(id_cont,firstname, lastname, tel, email);
-                        }else{
+                            updateContact(id_cont, firstname, lastname, lstObject);
+                        } else {
                             Log.d("INSERT:", "NAO EXISTE");
-                            insertContact(firstname,lastname, tel, email,id);
-=======
-                        //Log.d("TT:",email);
-                        if(tel!=""){
-                            String id_cont = getContactDisplayNameByNumber(tel);
-                            if(id_cont!=""){
-                                updateContact(id_cont,firstname, lastname, tel, email, numeros, telf);
-                            }else{
-                                //insertContact(mContext,firstname,lastname, tel, email);
-                                addContact(firstname,lastname, tel, email, numeros, telf);
-                            }
->>>>>>> 6bc9febf145ad888d9ae28f4ccace6a2789b22dd
+                            insertContact(firstname, lastname, id, lstObject);
                         }
                     }
                 }
