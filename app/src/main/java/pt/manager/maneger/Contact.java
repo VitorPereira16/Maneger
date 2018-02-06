@@ -5,14 +5,15 @@ package pt.manager.maneger;
  */
 
 public class Contact {
-    String id, type, type_name, contact_name, contact_number;
+    String id, type, type_name, contact_name, contact_number, ativo_contact;
 
-    public Contact(String id, String type, String type_name, String contact_name, String contact_number) {
+    public Contact(String id, String type, String type_name, String contact_name, String contact_number, String ativo_contact) {
         this.id = id;
         this.type = type;
         this.type_name = type_name;
         this.contact_name = contact_name;
         this.contact_number = contact_number;
+        this.ativo_contact = ativo_contact;
     }
 
     public String getId() {
@@ -23,9 +24,7 @@ public class Contact {
         return type;
     }
 
-    public String getType_name() {
-        return type_name;
-    }
+    public String getType_name() { return type_name; }
 
     public String getContact_name() {
         return contact_name;
@@ -33,6 +32,10 @@ public class Contact {
 
     public String getContact_number() {
         return contact_number;
+    }
+
+    public String getAtivo_contact() {
+        return ativo_contact;
     }
 
     public void setId(String id) {
@@ -53,5 +56,9 @@ public class Contact {
 
     public void setContact_number(String contact_number) {
         this.contact_number = contact_number;
+    }
+
+    public void setAtivo_contact(String ativo_contact) {
+        this.ativo_contact = ativo_contact;
     }
 }
