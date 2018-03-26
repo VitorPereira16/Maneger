@@ -3,4 +3,8 @@
     <color name="colorPrimary">#3f51b5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+
+    <color name="BackGroundDrak">#282A3C</color>
+    <color name="BackGroungMiddium">#2C2E3E</color>
+    <color name="BackGroungLight">#525672</color>
 </resources>
