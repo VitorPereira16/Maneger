@@ -26,7 +26,6 @@ import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
@@ -98,6 +97,8 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 public void onClick(DialogInterface dialog, int which) {
                     nif = input.getText().toString();
                     Log.v("entrou;","aqui 1");
+                    TextView t_nif = (TextView)findViewById(R.id.textNif);
+                    t_nif.setText(nif);
                     UpdateSync();
                 }
             });
@@ -144,17 +145,18 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         }
 
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+       // Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //setSupportActionBar(toolbar);
 
         String android_id = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
-        progressBar.setMax(100);
+        //progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        //progressBar.setMax(100);
 
         TextView t = new TextView(this);
         t=(TextView)findViewById(R.id.android_id);
         t.setText(android_id);
+
 
         data_sysnc = settings.getString("data_sysnc","");
         t_date = (TextView)findViewById(R.id.textView4);
@@ -205,8 +207,8 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             }
         }else{
             if (isNetworkAvailable()) {
-                progressBar.setVisibility(View.VISIBLE);
-                progressBar.setProgress(0);
+                //progressBar.setVisibility(View.VISIBLE);
+                //progressBar.setProgress(0);
                 new ServiceStubAsyncTask(MainActivity.this, MainActivity.this).execute();
             }
 
@@ -459,8 +461,10 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         if(bb==0) return false;
         System.out.println(web);
         ContentProviderResult[] results;
+
         try {
             results = getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+
         } catch (Exception e) {
             return false;
         }
@@ -738,7 +742,23 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 editor.putString("validate",validate);
                 String id_cont = getContactByWebsite("");
 
+                JSONObject empr = jsonResponse.optJSONObject("empresa");
+
+                TextView t_emp = (TextView)findViewById(R.id.textView7);
+                TextView t_nome = (TextView)findViewById(R.id.textView8);
+                TextView t_nume = (TextView)findViewById(R.id.textView9);
+                TextView t_carg = (TextView)findViewById(R.id.textView10);
+                TextView t_dep = (TextView)findViewById(R.id.textView11);
+                setText(t_emp, empr.getString("empresa"));
+                setText(t_nome,empr.getString("nome"));
+                setText(t_nume,empr.getString("ID"));
+                setText(t_carg,empr.getString("funcao"));
+                setText(t_dep,empr.getString("departamento"));
+
+
                 if(validate.equals("1")) {
+
+
                     JSONObject jj = jsonResponse.optJSONObject("contacts");
                     Iterator keys = jj.keys();
 
@@ -773,12 +793,10 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                                 //}
                             }
 
-
                             insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo);
                         }
                     }
                 }
-
 
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -798,7 +816,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             t_date = (TextView)findViewById(R.id.textView4);
             t_date.setText(fDate);
             editor.commit();
-            progressBar.setProgress(100);
+            //progressBar.setProgress(100);
 
             super.onPostExecute(result);
             onTaskComplete(result);
@@ -806,16 +824,27 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
         protected void onProgressUpdate(Integer... progress) {
             System.out.println("Contact id=" + progress);
-            progressBar.setProgress(progress[0]);
+            //progressBar.setProgress(progress[0]);
         }
+
+
         /*
         @Override
         protected void onProgressUpdate(Integer... values) {
             System.out.println("Contact id=" + values);
-            progressBar.setProgress(values[0]);
+            //progressBar.setProgress(values[0]);
         }*/
 
 
+    }
+
+    private void setText(final TextView text,final String value){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                text.setText(value);
+            }
+        });
     }
 
     private boolean isNetworkAvailable() {
