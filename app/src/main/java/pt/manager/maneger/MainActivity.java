@@ -1,6 +1,7 @@
 package pt.manager.maneger;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
@@ -20,6 +21,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.provider.Settings;
@@ -75,36 +77,48 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         settings = getSharedPreferences(PREFS_NAME,
                 Context.MODE_PRIVATE);
 
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        validate = settings.getString("validar", "0");
+        nif = settings.getString("nif", "0");
+        int ColorDate = Integer.parseInt(settings.getString("color_sysnc", "0"));
+        String data = settings.getString("data_sysnc", "0");
+
+        TextView t_nif = (TextView)findViewById(R.id.textNif);
+        t_nif.setText(nif);
+
+        t_date = (TextView)findViewById(R.id.textView4);
+        t_date.setTextColor(ColorDate);
+        t_date.setText(data);
+
+        TextView t_emp = (TextView)findViewById(R.id.textView7);
+        TextView t_nome = (TextView)findViewById(R.id.textView8);
+        TextView t_nume = (TextView)findViewById(R.id.textView9);
+        TextView t_carg = (TextView)findViewById(R.id.textView10);
+        TextView t_dep = (TextView)findViewById(R.id.textView11);
+
+        String empresa = "";
+        String nome = "";
+        String ID = "";
+        String funcao = "";
+        String departamento = "";
+
+        empresa = settings.getString("empresa", "0");
+        nome = settings.getString("nome", "0");
+        ID = settings.getString("ID", "0");
+        funcao = settings.getString("funcao", "0");
+        departamento = settings.getString("departamento", "0");
 
 
-        validate = settings.getString("validate","");
-
-        //validate = "1";
+        setText(t_emp, empresa);
+        setText(t_nome,nome);
+        setText(t_nume,ID);
+        setText(t_carg,funcao);
+        setText(t_dep,departamento);
 
         Log.v("validade;",":"+validate);
 
         if(!validate.equals("1")){
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle(R.string.title_dialog);
-            builder.setMessage(R.string.msg_dialog);
-            final EditText input = new EditText(this);
-            input.setInputType(InputType.TYPE_CLASS_NUMBER);
-            builder.setView(input);
-
-            builder.setPositiveButton(R.string.confirm,new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    nif = input.getText().toString();
-                    Log.v("entrou;","aqui 1");
-                    TextView t_nif = (TextView)findViewById(R.id.textNif);
-                    t_nif.setText(nif);
-                    UpdateSync();
-                }
-            });
-            AlertDialog alertdialog=builder.create();
-            alertdialog.setCanceledOnTouchOutside(false);
-            alertdialog.show();
+            ShowPopNif();
         }else{
             /*
             //Calendar calendar = Calendar.getInstance();
@@ -144,8 +158,16 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
         }
 
+        Button bt_nif = (Button) findViewById(R.id.button3);
+        bt_nif.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.v("entrou;","aqui 2");
+                ShowPopNif();
+            }
+        });
 
-       // Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        // Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         //setSupportActionBar(toolbar);
 
         String android_id = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -170,6 +192,39 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 UpdateSync();
             }
         });
+
+
+    }
+
+    public void ShowPopNif(){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle(R.string.title_dialog);
+        builder.setMessage(R.string.msg_dialog);
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        builder.setView(input);
+
+        builder.setPositiveButton(R.string.confirm,new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                nif = input.getText().toString();
+                Log.v("entrou;","aqui 1");
+
+                TextView t_nif = (TextView)findViewById(R.id.textNif);
+                t_nif.setText(nif);
+                UpdateSync();
+            }
+        });
+
+        SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor edit = sett.edit();
+        edit.putString("nif", nif);
+        edit.commit();
+
+        AlertDialog alertdialog=builder.create();
+        alertdialog.setCanceledOnTouchOutside(false);
+        alertdialog.show();
 
 
     }
@@ -685,7 +740,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    finish();
+                    //finish();
                 }
             }, 2000);
 
@@ -739,8 +794,12 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 JSONObject jsonResponse = new JSONObject(response);
                 validate = jsonResponse.getString("ativo");
                 //validate = "0";
-                editor.putString("validate",validate);
-                String id_cont = getContactByWebsite("");
+                SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(mContext);
+                SharedPreferences.Editor edit = sett.edit();
+                edit.putString("validar", validate);
+
+
+                //String id_cont = getContactByWebsite("");
 
                 JSONObject empr = jsonResponse.optJSONObject("empresa");
 
@@ -749,15 +808,21 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 TextView t_nume = (TextView)findViewById(R.id.textView9);
                 TextView t_carg = (TextView)findViewById(R.id.textView10);
                 TextView t_dep = (TextView)findViewById(R.id.textView11);
-                setText(t_emp, empr.getString("empresa"));
-                setText(t_nome,empr.getString("nome"));
-                setText(t_nume,empr.getString("ID"));
-                setText(t_carg,empr.getString("funcao"));
-                setText(t_dep,empr.getString("departamento"));
+
 
 
                 if(validate.equals("1")) {
+                    setText(t_emp, empr.getString("empresa"));
+                    setText(t_nome,empr.getString("nome"));
+                    setText(t_nume,empr.getString("ID"));
+                    setText(t_carg,empr.getString("funcao"));
+                    setText(t_dep,empr.getString("departamento"));
 
+                    edit.putString("empresa",empr.getString("empresa"));
+                    edit.putString("nome", empr.getString("nome"));
+                    edit.putString("ID",empr.getString("ID"));
+                    edit.putString("funcao", empr.getString("funcao"));
+                    edit.putString("departamento",empr.getString("departamento"));
 
                     JSONObject jj = jsonResponse.optJSONObject("contacts");
                     Iterator keys = jj.keys();
@@ -796,7 +861,14 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                             insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo);
                         }
                     }
+                }else{
+                    setText(t_emp, "");
+                    setText(t_nome,"");
+                    setText(t_nume,"");
+                    setText(t_carg,"");
+                    setText(t_dep,"");
                 }
+                edit.commit();
 
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -804,18 +876,34 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             return validate;
         }
 
+        @SuppressLint("ResourceAsColor")
         @Override
         protected void onPostExecute(String result) {
             //progressBar.setVisibility(View.GONE);
+            String fDate = "";
+            int colorDate;
             SharedPreferences.Editor editor = settings.edit();
-            Date cDate = new Date();
-            String fDate = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(cDate);
-            Log.v("Date:", fDate);
-            editor.putString("data_sysnc",fDate);
-
             t_date = (TextView)findViewById(R.id.textView4);
+            if(result.equals("1")) {
+                Date cDate = new Date();
+                fDate = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(cDate);
+                Log.v("Date:", result);
+                colorDate = getResources().getColor(R.color.color6);
+                t_date.setTextColor(colorDate);
+            }else{
+                colorDate = getResources().getColor(R.color.color1);
+                t_date.setTextColor(colorDate);
+                fDate = "Não Autorizado";
+
+            }
+
+            SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(mContext);
+            SharedPreferences.Editor edit = sett.edit();
+            edit.putString("data_sysnc", fDate);
+            edit.putString("color_sync", Integer.toString(colorDate));
+            edit.commit();
+
             t_date.setText(fDate);
-            editor.commit();
             //progressBar.setProgress(100);
 
             super.onPostExecute(result);
