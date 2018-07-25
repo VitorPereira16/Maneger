@@ -21,7 +21,6 @@ public class SyncReceiverActivity extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Toast.makeText(getApplicationContext(), "Service started", Toast.LENGTH_LONG).show();
-        Log.v("TESTE", "TESTE");
         return START_NOT_STICKY;
     }
 

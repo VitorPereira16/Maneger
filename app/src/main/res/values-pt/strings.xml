@@ -2,14 +2,14 @@
 <resources>
     <string name="app_name">IT Manager - Contactos</string>
     <string name="action_settings">Definições</string>
-    <string name="title">Id do dispositivo</string>
+    <string name="title">Id do Dispositivo</string>
     <string name="synchronize">Sincronizar</string>
     <string name="cancel">Cancelar</string>
     <string name="confirm">Confirmar</string>
-    <string name="msg_dialog">Introduza o contribuinte da sua empresa</string>
-    <string name="title_dialog">Validação</string>
+    <string name="msg_dialog">Introduza o nif da sua empresa</string>
+    <string name="title_dialog">Empresa</string>
     <string name="erro_empresa">Empresa não existe</string>
     <string name="erro_disposit">Dispositivo não licenciado</string>
-    <string name="date_lst_act">Ultima actualização</string>
+    <string name="date_lst_act">Última Atualização</string>
     <string name="nif">NIF</string>
 </resources>

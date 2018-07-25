@@ -15,6 +15,8 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.PorterDuff;
+import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -28,8 +30,13 @@ import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -43,23 +50,27 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
+    private Handler handler = new Handler();
     private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 0;
-    private String apiPath = "http://itmanager.pt/mobile_contacts/get_contacts.php";
+    public String apiPath = "http://itmanager.pt/mobile_contacts/get_contacts.php";
     private ProgressBar progressBar;
     public static String validate = "0";
     public static String nif = "";
     public static String data_sysnc;
     public static final String PREFS_NAME = "MyPrefsFile";
+    public int progressStatus = 0;
     SharedPreferences settings;
     public static TextView t_date;
     PendingIntent myPendingIntent;
@@ -67,34 +78,74 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
     BroadcastReceiver myBroadcastReceiver;
     Calendar firingCal;
     private static final String TAG ="MainActivity";
+    Integer control_cancel;
 
-
+    public TextView t_emp,t_nome, t_nume, t_carg, t_dep;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        t_emp = (TextView)findViewById(R.id.textView9);
+        t_nome = (TextView)findViewById(R.id.textView8);
+        t_nume = (TextView)findViewById(R.id.textView7);
+        t_carg = (TextView)findViewById(R.id.textView11);
+        t_dep = (TextView)findViewById(R.id.textView10);
+        t_date = (TextView)findViewById(R.id.textView4);
+
+        control_cancel = 0;
+
+        final RemindersIntentManager remindersIntentManager = RemindersIntentManager.getInstance( this );
+
+        Calendar calendar = Calendar.getInstance();
+        Date curr=new Date();
+        curr.setHours(12);
+        curr.setMinutes(00);
+        calendar.setTime(curr);
+        calendar.set(Calendar.SECOND, 0);
+
+        final AlarmManager alarmManager = (AlarmManager) getSystemService( Context.ALARM_SERVICE );
+
+        alarmManager.setRepeating( AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), 24*60*60*1000, remindersIntentManager.getChristmasIntent() );
+
+        Log.v("TIME",calendar.getTimeInMillis()+"-"+24*60*60*1000);
+
+        verifyPremission();
+        int ver_net = verifyConnection();
+        if(ver_net==0) {
+            ShowPopNet();
+        }
         settings = getSharedPreferences(PREFS_NAME,
                 Context.MODE_PRIVATE);
 
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         validate = settings.getString("validar", "0");
-        nif = settings.getString("nif", "0");
-        int ColorDate = Integer.parseInt(settings.getString("color_sysnc", "0"));
-        String data = settings.getString("data_sysnc", "0");
+        nif = settings.getString("nif", "");
+        int ColorDate = Integer.parseInt(settings.getString("color_sync", "0"));
+        String data = settings.getString("data_sysnc", "");
 
         TextView t_nif = (TextView)findViewById(R.id.textNif);
+        TextView disp = (TextView)findViewById(R.id.textView);
         t_nif.setText(nif);
 
-        t_date = (TextView)findViewById(R.id.textView4);
-        t_date.setTextColor(ColorDate);
-        t_date.setText(data);
+        Typeface type = Typeface.createFromAsset(getAssets(),"font/pop_reg.ttf");
+        t_nif.setTypeface(type);
+        disp.setTypeface(type);
 
-        TextView t_emp = (TextView)findViewById(R.id.textView7);
-        TextView t_nome = (TextView)findViewById(R.id.textView8);
-        TextView t_nume = (TextView)findViewById(R.id.textView9);
-        TextView t_carg = (TextView)findViewById(R.id.textView10);
-        TextView t_dep = (TextView)findViewById(R.id.textView11);
+        t_date = (TextView) findViewById(R.id.textView4);
+        t_date.setText(data);
+        //
+        t_date.setTextColor(ColorDate);
+
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        progressBar.getProgressDrawable().setColorFilter(ContextCompat.getColor(this,R.color.color6), PorterDuff.Mode.SRC_IN);
+
+        t_emp = (TextView)findViewById(R.id.textView9);
+        t_nome = (TextView)findViewById(R.id.textView8);
+        t_nume = (TextView)findViewById(R.id.textView7);
+        t_carg = (TextView)findViewById(R.id.textView11);
+        t_dep = (TextView)findViewById(R.id.textView10);
 
         String empresa = "";
         String nome = "";
@@ -102,24 +153,30 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         String funcao = "";
         String departamento = "";
 
-        empresa = settings.getString("empresa", "0");
-        nome = settings.getString("nome", "0");
-        ID = settings.getString("ID", "0");
-        funcao = settings.getString("funcao", "0");
-        departamento = settings.getString("departamento", "0");
+        empresa = settings.getString("empresa", "");
+        nome = settings.getString("nome", "");
+        ID = settings.getString("ID", "");
+        funcao = settings.getString("funcao", "");
+        departamento = settings.getString("departamento", "");
 
 
-        setText(t_emp, empresa);
-        setText(t_nome,nome);
-        setText(t_nume,ID);
-        setText(t_carg,funcao);
-        setText(t_dep,departamento);
+        setText2(t_emp, empresa,this);
+        setText2(t_nome,nome,this);
+        setText2(t_nume,ID,this);
+        setText2(t_carg,funcao,this);
+        setText2(t_dep,departamento,this);
 
-        Log.v("validade;",":"+validate);
 
         if(!validate.equals("1")){
+            setText2(t_emp, "",this);
+            setText2(t_nome,"",this);
+            setText2(t_nume,"",this);
+            setText2(t_carg,"",this);
+            setText2(t_dep,"",this);
+            progressBar.setVisibility(View.INVISIBLE);
             ShowPopNif();
         }else{
+            progressBar.setVisibility(View.VISIBLE);
             /*
             //Calendar calendar = Calendar.getInstance();
             //calendar.set(Calendar.HOUR_OF_DAY, 13); // For 1 PM or 2 PM
@@ -162,7 +219,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         bt_nif.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.v("entrou;","aqui 2");
                 ShowPopNif();
             }
         });
@@ -188,7 +244,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.v("entrou;","aqui 2");
                 UpdateSync();
             }
         });
@@ -196,26 +251,100 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
     }
 
-    public void ShowPopNif(){
+    public int verifyConnection(){
+        int val = 0;
+        if (isNetworkAvailable()) {
+            val = 1;
+        }
+        return val;
+    }
+    public void verifyPremission(){
+        Context context = getApplicationContext();
+        int duration = Toast.LENGTH_SHORT;
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.WRITE_CONTACTS)
+                != PackageManager.PERMISSION_GRANTED) {
 
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                    Manifest.permission.WRITE_CONTACTS)) {
+
+                // Show a expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                //Toast toast = Toast.makeText(context, "desbloquiar premissoes", duration);
+                //toast.show();
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.WRITE_CONTACTS},
+                        MY_PERMISSIONS_REQUEST_READ_CONTACTS);
+                //finish();
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.WRITE_CONTACTS},
+                        MY_PERMISSIONS_REQUEST_READ_CONTACTS);
+
+
+            }
+        }
+    }
+
+    public String getSafeSubstring(String s, int maxLength){
+        if(!TextUtils.isEmpty(s)){
+            if(s.length() >= maxLength){
+                return s.substring(0, maxLength);
+            }
+        }
+        return s;
+    }
+
+    public void ShowPopNif(){
+        final Button pbutton;
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle(R.string.title_dialog);
         builder.setMessage(R.string.msg_dialog);
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        builder.setView(input);
+        input.getBackground().setColorFilter(getResources().getColor(R.color.color1), PorterDuff.Mode.SRC_IN);
+        input.setFilters(new InputFilter[] {new InputFilter.LengthFilter(9)});
 
+        builder.setView(input);
         builder.setPositiveButton(R.string.confirm,new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 nif = input.getText().toString();
-                Log.v("entrou;","aqui 1");
-
+                SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                SharedPreferences.Editor edit = sett.edit();
+                edit.putString("nif", nif);
+                edit.commit();
                 TextView t_nif = (TextView)findViewById(R.id.textNif);
                 t_nif.setText(nif);
                 UpdateSync();
             }
         });
+        builder.setCancelable(false);
+        builder.setNegativeButton(R.string.cancel,new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog,int id) {
+                dialog.dismiss();
+            }
+        })
+        .setOnKeyListener(new DialogInterface.OnKeyListener() {
+            @Override
+            public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                if(keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP)
+                    if(control_cancel.equals("0")){
+                        finish();
+                    }else {
+                        control_cancel = 1;
+                        dialog.dismiss();
+                    }
+
+                return false;
+            }
+        });
+
 
         SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor edit = sett.edit();
@@ -223,8 +352,101 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         edit.commit();
 
         AlertDialog alertdialog=builder.create();
-        alertdialog.setCanceledOnTouchOutside(false);
+        //alertdialog.setCanceledOnTouchOutside(false);
+
         alertdialog.show();
+
+        Button nbutton = alertdialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        //nbutton.setBackgroundColor(getResources().getColor(R.color.color1));
+        nbutton.setTextColor(getResources().getColor(R.color.color1));
+        pbutton = alertdialog.getButton(DialogInterface.BUTTON_POSITIVE);
+        pbutton.setVisibility(View.INVISIBLE);
+        pbutton.setEnabled(false);
+        //pbutton.setBackgroundColor(getResources().getColor(R.color.color1));
+        pbutton.setTextColor(getResources().getColor(R.color.color1));
+
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before,
+                                      int count) {
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count,
+                                          int after) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Check if edittext is empty
+                if (TextUtils.isEmpty(s)) {
+                    // Disable ok button
+                    pbutton.setEnabled(false);
+                    pbutton.setVisibility(View.INVISIBLE);
+                }else if (s.length()<9) {
+                    // Something into edit text. Enable the button.
+                    pbutton.setEnabled(false);
+
+                    pbutton.setVisibility(View.INVISIBLE);
+                } else {
+                    // Disable ok button
+                    pbutton.setEnabled(true);
+                    pbutton.setVisibility(View.VISIBLE);
+                }
+
+            }
+        });
+
+    }
+
+    public void ShowPopNet(){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle(R.string.no_net);
+        builder.setMessage("");
+        builder.setPositiveButton(R.string.tenta, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+
+        builder.setNegativeButton(R.string.sair,new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });
+
+        final AlertDialog alertdialog=builder.create();
+        alertdialog.show();
+
+        //Overriding the handler immediately after show is probably a better approach than OnShowListener as described below
+        alertdialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                int ver_net = verifyConnection();
+
+                if(ver_net==1) {
+                    alertdialog.dismiss();
+                    if(!validate.equals("1")){
+                        ShowPopNif();
+                    }else{
+                        UpdateSync();
+                    }
+
+                }
+            }
+        });
+
+        Button nbutton = alertdialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        //nbutton.setBackgroundColor(getResources().getColor(R.color.color1));
+        nbutton.setTextColor(getResources().getColor(R.color.color1));
+        Button pbutton = alertdialog.getButton(DialogInterface.BUTTON_POSITIVE);
+        //pbutton.setBackgroundColor(getResources().getColor(R.color.color1));
+        pbutton.setTextColor(getResources().getColor(R.color.color1));
 
 
     }
@@ -244,8 +466,11 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 // Show a expanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
                 // sees the explanation, try again to request the permission.
-                Toast toast = Toast.makeText(context, "desbloquiar premissoes", duration);
-                toast.show();
+                //Toast toast = Toast.makeText(context, "desbloquiar premissoes", duration);
+                //toast.show();
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.WRITE_CONTACTS},
+                        MY_PERMISSIONS_REQUEST_READ_CONTACTS);
             } else {
 
                 // No explanation needed, we can request the permission.
@@ -257,8 +482,9 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
                 // app-defined int constant. The callback method gets the
                 // result of the request.
-                Toast toast = Toast.makeText(context, "permissoes desbloquiadas:", duration);
-                toast.show();
+                //Toast toast = Toast.makeText(context, "permissoes desbloquiadas:", duration);
+                //toast.show();
+                new ServiceStubAsyncTask(MainActivity.this,MainActivity.this).execute();
             }
         }else{
             if (isNetworkAvailable()) {
@@ -366,7 +592,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                     //builder = ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI);
                     //builder.withSelection(where, numberParams);
                     //ops.add(builder.build());
-                    Log.d("ENTROU:", " "+c.getContact_number());
+                    //Log.d("ENTROU:", " "+c.getContact_number());
                     ops.add(ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI).withSelection(where, numberParams) .build());
                 }else {
                     String where = ContactsContract.Data.CONTACT_ID + " = ? AND " +
@@ -459,7 +685,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             String type = c.getType();
             if(c.getAtivo_contact().equals("1")){
                 bb = 1;
-                if (type.equals("5")) {
+                if (type.equals("5") || type.equals("7")) {
                     // Number TELEMOVEL
                     ops.add(ContentProviderOperation.newInsert(addCallerIsSyncAdapterParameter(ContactsContract.Data.CONTENT_URI, true))
                             .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
@@ -512,7 +738,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 .withValue(ContactsContract.CommonDataKinds.Website.URL, web)
                 .withValue(ContactsContract.CommonDataKinds.Website.TYPE, ContactsContract.CommonDataKinds.Website.TYPE_CUSTOM)
                 .build());
-        Log.v("SIZE", String.valueOf(arr.size()));
         if(bb==0) return false;
         System.out.println(web);
         ContentProviderResult[] results;
@@ -591,7 +816,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             if (cur != null  ) {
                 while(cur.moveToNext()){
                     contactId = cur.getString(cur.getColumnIndex( BaseColumns._ID ));
-                    Log.v("CONTACTO ID:","1_"+contactId);
                 }
             }
         } finally {
@@ -623,13 +847,13 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         return contactId;
     }
 
-    public String getContactByWebsite(String web) {
+    public String getContactByWebsite(String web, Context mContext) {
         String[] projection = new String[] { ContactsContract.CommonDataKinds.Website.URL, ContactsContract.CommonDataKinds.Website.TYPE };
         String selection = ContactsContract.Data.DELETED + " = '0'";
         String sel = ContactsContract.RawContacts.SOURCE_ID + " = ? AND " +
                 ContactsContract.RawContacts.DELETED + " = '0'";
         String contactId = "";
-        Cursor cur = getContentResolver().query(ContactsContract.Data.CONTENT_URI,null, null, null, null);
+        Cursor cur = mContext.getContentResolver().query(ContactsContract.Data.CONTENT_URI,null, null, null, null);
         try {
             cur.moveToFirst();
             if (cur != null  ) {
@@ -640,7 +864,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                     if(source_id2 != null) {
                         if (source_id2.indexOf("www.itmanager.pt") != -1) {
                             contactId = cur.getString(cur.getColumnIndex(ContactsContract.RawContacts.CONTACT_ID));
-                            deleteContact(contactId);
+                            deleteContact(contactId, mContext);
                         }
                     }
 
@@ -654,8 +878,8 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         return contactId;
     }
 
-    public boolean deleteContact(String id) {
-        Cursor cur = getContentResolver().query(ContactsContract.Data.CONTENT_URI, null, ContactsContract.RawContacts.CONTACT_ID + "="
+    public boolean deleteContact(String id, Context mContext) {
+        Cursor cur = mContext.getContentResolver().query(ContactsContract.Data.CONTENT_URI, null, ContactsContract.RawContacts.CONTACT_ID + "="
                 + id, null, null);
         startManagingCursor(cur);
         while (cur.moveToNext()) {
@@ -684,14 +908,14 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
-                    Toast toast = Toast.makeText(MainActivity.this, "permission was granted", Toast.LENGTH_SHORT);
-                    toast.show();
+                    //Toast toast = Toast.makeText(MainActivity.this, "permission was granted", Toast.LENGTH_SHORT);
+                    //toast.show();
                 } else {
-
+                    finish();
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast toast = Toast.makeText(MainActivity.this, "permission denied", Toast.LENGTH_SHORT);
-                    toast.show();
+                    //Toast toast = Toast.makeText(MainActivity.this, "permission denied", Toast.LENGTH_SHORT);
+                    //toast.show();
                 }
                 return;
             }
@@ -727,15 +951,14 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         validate = result;
         SharedPreferences.Editor editor = settings.edit();
         editor.putString("validate",validate);
-        Log.v("valido", "V:"+validate);
         if(validate.equals("1")) {
             fab.setEnabled(true);
             fab.setClickable(true);
             //Toast.makeText(getApplicationContext(), "tem permissões", Toast.LENGTH_LONG).show();
         }else{
-            fab.setEnabled(false);
-            fab.setClickable(false);
-            Toast.makeText(getApplicationContext(), "Não tem permissões", Toast.LENGTH_LONG).show();
+            //fab.setEnabled(false);
+            //fab.setClickable(false);
+            //Toast.makeText(getApplicationContext(), "Não tem permissões", Toast.LENGTH_LONG).show();
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 @Override
@@ -747,15 +970,13 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         }
     }
 
-    private class ServiceStubAsyncTask extends AsyncTask<String, String, String> {
+    public class ServiceStubAsyncTask extends AsyncTask<String, Integer, String> {
 
         private Context mContext;
         private Activity mActivity;
         String response = "";
         HashMap<String, String> postDataParams;
         //private TaskCompleted mCallback;
-
-
 
         public ServiceStubAsyncTask(Context context, Activity activity) {
             mContext = context;
@@ -775,7 +996,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             postDataParams.put("HTTP_ACCEPT", "application/json");
             String android_id = Settings.Secure.getString(mContext.getContentResolver(),
                     Settings.Secure.ANDROID_ID);
-            SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+            SharedPreferences settings = mContext.getSharedPreferences(PREFS_NAME, 0);
             SharedPreferences.Editor editor = settings.edit();
 
             HttpConnectionService service = new HttpConnectionService();
@@ -790,7 +1011,11 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             String cargo = "";
             String departamento = "";
 
+            String fDate = "";
+            int colorDate;
+            //progressBar.setProgress(0);
             try {
+
                 JSONObject jsonResponse = new JSONObject(response);
                 validate = jsonResponse.getString("ativo");
                 //validate = "0";
@@ -803,20 +1028,20 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
                 JSONObject empr = jsonResponse.optJSONObject("empresa");
 
-                TextView t_emp = (TextView)findViewById(R.id.textView7);
-                TextView t_nome = (TextView)findViewById(R.id.textView8);
-                TextView t_nume = (TextView)findViewById(R.id.textView9);
-                TextView t_carg = (TextView)findViewById(R.id.textView10);
-                TextView t_dep = (TextView)findViewById(R.id.textView11);
+                //t_emp = (TextView)findViewById(R.id.textView9);
+                //t_nome = (TextView)findViewById(R.id.textView8);
+                //t_nume = (TextView)findViewById(R.id.textView7);
+                //t_carg = (TextView)findViewById(R.id.textView11);
+                //t_dep = (TextView)findViewById(R.id.textView10);
 
-
+                getContactByWebsite("", mContext);
 
                 if(validate.equals("1")) {
-                    setText(t_emp, empr.getString("empresa"));
-                    setText(t_nome,empr.getString("nome"));
-                    setText(t_nume,empr.getString("ID"));
-                    setText(t_carg,empr.getString("funcao"));
-                    setText(t_dep,empr.getString("departamento"));
+                    setText2(t_emp, empr.getString("empresa"),mContext);
+                    setText2(t_nome,empr.getString("nome"),mContext);
+                    setText2(t_nume,empr.getString("ID"),mContext);
+                    setText2(t_carg,empr.getString("funcao"),mContext);
+                    setText2(t_dep,empr.getString("departamento"),mContext);
 
                     edit.putString("empresa",empr.getString("empresa"));
                     edit.putString("nome", empr.getString("nome"));
@@ -835,7 +1060,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                         if (line.has("contacts")) {
                             id = line.getString("id");
                             firstname = line.getString("nome");
-                            lastname = line.getString("ultimonome")+" - "+line.getString("numero_funcionario");
+                            lastname = line.getString("ultimonome")+line.getString("numero_funcionario");
                             website = line.getString("Website");
                             empresa = line.getString("empresa");
                             cargo = line.getString("funcao");
@@ -861,13 +1086,28 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                             insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo);
                         }
                     }
+                    Date cDate = new Date();
+                    fDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate);
+                    colorDate = getResources().getColor(R.color.color6);
                 }else{
-                    setText(t_emp, "");
-                    setText(t_nome,"");
-                    setText(t_nume,"");
-                    setText(t_carg,"");
-                    setText(t_dep,"");
+                    setText2(t_emp, "",mContext);
+                    setText2(t_nome,"",mContext);
+                    setText2(t_nume,"",mContext);
+                    setText2(t_carg,"",mContext);
+                    setText2(t_dep,"",mContext);
+                    colorDate = mContext.getResources().getColor(R.color.color1);
+
+                    edit.putString("empresa", "");
+                    edit.putString("nome", "");
+                    edit.putString("ID","");
+                    edit.putString("funcao", "");
+                    edit.putString("departamento","");
+
+                    fDate = "Não Autorizado";
                 }
+
+                edit.putString("data_sysnc", fDate);
+                edit.putString("color_sync", Integer.toString(colorDate));
                 edit.commit();
 
             } catch (JSONException e) {
@@ -879,41 +1119,76 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         @SuppressLint("ResourceAsColor")
         @Override
         protected void onPostExecute(String result) {
-            //progressBar.setVisibility(View.GONE);
+            //progressBar.getProgressDrawable().setColorFilter(
+                    //R.color.color6, PorterDuff.Mode.SRC_IN);
+
             String fDate = "";
             int colorDate;
-            SharedPreferences.Editor editor = settings.edit();
-            t_date = (TextView)findViewById(R.id.textView4);
+
             if(result.equals("1")) {
+                progressBar.setVisibility(View.VISIBLE);
                 Date cDate = new Date();
-                fDate = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(cDate);
-                Log.v("Date:", result);
-                colorDate = getResources().getColor(R.color.color6);
-                t_date.setTextColor(colorDate);
+                fDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate);
+                colorDate = mContext.getResources().getColor(R.color.color6);
+
+
+                new Thread(new Runnable() {
+                    public void run() {
+                        while (progressStatus < 100) {
+                            progressStatus += 10;
+                            // Update the progress bar and display the
+                            //current value in the text view
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    progressBar.setProgress(progressStatus);
+                                    if(progressStatus==100){
+                                        int colorDate2 = getResources().getColor(R.color.color6);
+                                        TextView t_date2;
+                                        Date cDate2 = new Date();
+                                        String fDate2 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate2);
+                                        t_date2 = (TextView) findViewById(R.id.textView4);
+                                        t_date2.setTextColor(colorDate2);
+                                        t_date2.setText(fDate2);
+                                    }
+                                }
+                            });
+                            try {
+                                // Sleep for 200 milliseconds.
+                                Thread.sleep(200);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).start();
+
             }else{
-                colorDate = getResources().getColor(R.color.color1);
+                colorDate = mContext.getResources().getColor(R.color.color1);
+                progressBar = (ProgressBar) mActivity.findViewById(R.id.progressBar);
+                progressBar.setVisibility(View.INVISIBLE);
                 t_date.setTextColor(colorDate);
+
                 fDate = "Não Autorizado";
+                ShowPopNif();
+                t_date.setText(fDate);
 
             }
-
-            SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(mContext);
+            /*
+            SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(this.mActivity);
             SharedPreferences.Editor edit = sett.edit();
             edit.putString("data_sysnc", fDate);
             edit.putString("color_sync", Integer.toString(colorDate));
             edit.commit();
-
-            t_date.setText(fDate);
-            //progressBar.setProgress(100);
+            */
 
             super.onPostExecute(result);
             onTaskComplete(result);
         }
-
+        /*
         protected void onProgressUpdate(Integer... progress) {
             System.out.println("Contact id=" + progress);
             //progressBar.setProgress(progress[0]);
-        }
+        }*/
 
 
         /*
@@ -923,10 +1198,16 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             //progressBar.setProgress(values[0]);
         }*/
 
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            //System.out.println("Contact id=" + values);
+
+        }
+
 
     }
 
-    private void setText(final TextView text,final String value){
+    private void setText2(final TextView text, final String value, final Context mContext){
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -939,5 +1220,150 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService( CONNECTIVITY_SERVICE );
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    public class ServiceStubAsyncTask2 extends AsyncTask<String, Integer, String> {
+
+        private Context mContext;
+        private Activity mActivity;
+        String response = "";
+        HashMap<String, String> postDataParams;
+        //private TaskCompleted mCallback;
+
+        public ServiceStubAsyncTask2(Context context) {
+            mContext = context;
+        }
+        /*
+        @Override
+        protected void onPreExecute() {
+
+            super.onPreExecute();
+        }*/
+
+        @Override
+        protected String doInBackground(String... arg0) {
+            String[] numeros = new String[20];
+            postDataParams = new HashMap<String, String>();
+            postDataParams.put("HTTP_ACCEPT", "application/json");
+            String android_id = Settings.Secure.getString(mContext.getContentResolver(),
+                    Settings.Secure.ANDROID_ID);
+            SharedPreferences settings = mContext.getSharedPreferences(PREFS_NAME, 0);
+            SharedPreferences.Editor editor = settings.edit();
+
+            HttpConnectionService service = new HttpConnectionService();
+            response = service.sendRequest(apiPath+"?api_key="+android_id+"&nif="+nif, postDataParams);
+            JSONArray jsonArray = null;
+            String id;
+            String firstname = "";
+            String lastname = "";
+            String website = "";
+            String activo = "";
+            String empresa = "";
+            String cargo = "";
+            String departamento = "";
+
+            String fDate = "";
+            int colorDate;
+            //progressBar.setProgress(0);
+            try {
+
+                JSONObject jsonResponse = new JSONObject(response);
+                validate = jsonResponse.getString("ativo");
+                //validate = "0";
+                SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(mContext);
+                SharedPreferences.Editor edit = sett.edit();
+                edit.putString("validar", validate);
+
+
+                //String id_cont = getContactByWebsite("");
+
+                JSONObject empr = jsonResponse.optJSONObject("empresa");
+
+                getContactByWebsite("", mContext);
+
+                if(validate.equals("1")) {
+
+                    edit.putString("empresa",empr.getString("empresa"));
+                    edit.putString("nome", empr.getString("nome"));
+                    edit.putString("ID",empr.getString("ID"));
+                    edit.putString("funcao", empr.getString("funcao"));
+                    edit.putString("departamento",empr.getString("departamento"));
+
+                    JSONObject jj = jsonResponse.optJSONObject("contacts");
+                    Iterator keys = jj.keys();
+
+                    while (keys.hasNext()) {
+                        List<Object> lstObject = new ArrayList<Object>();
+                        String dynamicKey = (String) keys.next();
+                        JSONObject line = jj.getJSONObject(dynamicKey);
+
+                        if (line.has("contacts")) {
+                            id = line.getString("id");
+                            firstname = line.getString("nome");
+                            lastname = line.getString("ultimonome")+line.getString("numero_funcionario");
+                            website = line.getString("Website");
+                            empresa = line.getString("empresa");
+                            cargo = line.getString("funcao");
+                            departamento = line.getString("departamento");
+                            JSONObject jja = line.optJSONObject("contacts");
+                            //jsonArray = line.getJSONArray("contacts");
+                            activo = line.getString("ativo");
+                            Iterator keys2 = jja.keys();
+
+                            while (keys2.hasNext()) {
+                                String dynamicKey2 = (String) keys2.next();
+                                JSONObject line2 = jja.getJSONObject(dynamicKey2);
+                                //for (int i = 0; i < jja.length(); i++) {
+                                //String a = jsonArray.getString(i);
+                                //JSONObject resultJsonObject = new JSONObject(a);
+
+                                Contact c = new Contact((String) line2.get("id"), (String) line2.get("type"), (String) line2.get("type_name"), (String) line2.get("contact_name"), (String) line2.get("contact_number"), (String) line2.get("ativo_contact"));
+                                lstObject.add(c);
+
+                                //}
+                            }
+
+                            insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo);
+                        }
+                    }
+                    Date cDate = new Date();
+                    fDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate);
+                    colorDate = mContext.getResources().getColor(R.color.color6);
+                }else{
+
+                    colorDate = mContext.getResources().getColor(R.color.color1);
+
+                    edit.putString("empresa", "");
+                    edit.putString("nome", "");
+                    edit.putString("ID","");
+                    edit.putString("funcao", "");
+                    edit.putString("departamento","");
+
+                    fDate = "Não Autorizado";
+                }
+
+                edit.putString("data_sysnc", fDate);
+                edit.putString("color_sync", Integer.toString(colorDate));
+                edit.commit();
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return validate;
+        }
+
+        @SuppressLint("ResourceAsColor")
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+        }
+
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+
+        }
+
+
     }
 }
