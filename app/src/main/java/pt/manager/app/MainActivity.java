@@ -1,4 +1,4 @@
-package pt.manager.maneger;
+package pt.manager.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -9,7 +9,6 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -24,7 +23,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
@@ -50,7 +48,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -80,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
     private static final String TAG ="MainActivity";
     Integer control_cancel;
 
-    public TextView t_emp,t_nome, t_nume, t_carg, t_dep;
+    public TextView t_emp,t_nome, t_nume, t_carg, t_dep, t_nif;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,11 +102,12 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         calendar.setTime(curr);
         calendar.set(Calendar.SECOND, 0);
 
+        final Long time = new GregorianCalendar().getTimeInMillis() + 1 * 60 * 1000;
+
         final AlarmManager alarmManager = (AlarmManager) getSystemService( Context.ALARM_SERVICE );
 
-        alarmManager.setRepeating( AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), 24*60*60*1000, remindersIntentManager.getChristmasIntent() );
-
-        Log.v("TIME",calendar.getTimeInMillis()+"-"+24*60*60*1000);
+        //alarmManager.setRepeating( AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), 30*1000, remindersIntentManager.getChristmasIntent() );
+        alarmManager.setRepeating( AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), 24 * 60 * 60 * 1000, remindersIntentManager.getChristmasIntent(MainActivity.this) );
 
         verifyPremission();
         int ver_net = verifyConnection();
@@ -125,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         int ColorDate = Integer.parseInt(settings.getString("color_sync", "0"));
         String data = settings.getString("data_sysnc", "");
 
-        TextView t_nif = (TextView)findViewById(R.id.textNif);
+        t_nif = (TextView)findViewById(R.id.textNif);
         TextView disp = (TextView)findViewById(R.id.textView);
         t_nif.setText(nif);
 
@@ -141,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.getProgressDrawable().setColorFilter(ContextCompat.getColor(this,R.color.color6), PorterDuff.Mode.SRC_IN);
 
-        t_emp = (TextView)findViewById(R.id.textView9);
+        t_emp = (TextView) findViewById(R.id.textView9);
         t_nome = (TextView)findViewById(R.id.textView8);
         t_nume = (TextView)findViewById(R.id.textView7);
         t_carg = (TextView)findViewById(R.id.textView11);
@@ -319,7 +317,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 SharedPreferences.Editor edit = sett.edit();
                 edit.putString("nif", nif);
                 edit.commit();
-                TextView t_nif = (TextView)findViewById(R.id.textNif);
+                t_nif = (TextView)findViewById(R.id.textNif);
                 t_nif.setText(nif);
                 UpdateSync();
             }
@@ -659,7 +657,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         }
     }
 
-    public boolean insertContact2(String firstName, String lastname, String id, List<Object> arr, String web, String empresa, String departamento, String funcao){
+    public boolean insertContact2(String firstName, String lastname, String id, List<Object> arr, String web, String empresa, String departamento, String funcao, Context mContext){
 
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
         int rawContactInsertIndex = ops.size();
@@ -743,7 +741,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         ContentProviderResult[] results;
 
         try {
-            results = getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+            results = mContext.getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
 
         } catch (Exception e) {
             return false;
@@ -762,90 +760,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         return uri;
     }
 
-    public Integer verifyExist(String where, String[] parm) {
-        Integer exist = 0;
 
-        String[] projection = new String[] { ContactsContract.CommonDataKinds.Website.URL, ContactsContract.CommonDataKinds.Website.TYPE };
-        String contactId = "";
-        Cursor cur = getContentResolver().query(ContactsContract.Data.CONTENT_URI,projection, where, parm, null);
-        try {
-            cur.moveToFirst();
-            if (cur != null  ) {
-                while(cur.moveToNext()){
-                    String source_id2 = cur.getString(cur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                    exist = 1;
-                }
-            }
-        } finally {
-            if (cur != null) {
-                cur.close();
-            }
-        }
-
-
-        return exist;
-    }
-
-    public String getSy(String id){
-        ContentResolver cr = this.getContentResolver();
-        String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1, ContactsContract.RawContacts.SOURCE_ID };
-        String selection = ContactsContract.Contacts._ID + " = '" + id + "' AND " + ContactsContract.RawContacts.DELETED + " = '0'";
-        Cursor cur = cr.query(ContactsContract.RawContacts.CONTENT_URI, projection, selection, null, null);
-        String sync1 = "";
-        System.out.println(selection);
-        while (cur.moveToNext()) {
-            Long rawId = cur.getLong(0);
-            Long contactId = cur.getLong(1);
-            sync1 = cur.getString(2);
-            String source = cur.getString(2);
-
-            System.out.println("Contact id=" + contactId + " raw-id=" + rawId + " sync1=" + sync1 + " source=" + source);
-        }
-
-        cur.close();
-        return sync1;
-    }
-
-    public String getContactBySYSNC(String sysnc_id) {
-        String[] projection = new String[] { ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.SYNC1, BaseColumns._ID };
-        String selection = ContactsContract.RawContacts.SYNC1 + " = '" + sysnc_id + "' AND " + ContactsContract.RawContacts.DELETED + " = '0'";
-        Cursor cur = getContentResolver().query(ContactsContract.RawContacts.CONTENT_URI, null, selection, null, null);
-        String contactId = "";
-        try {
-            cur.moveToFirst();
-            if (cur != null  ) {
-                while(cur.moveToNext()){
-                    contactId = cur.getString(cur.getColumnIndex( BaseColumns._ID ));
-                }
-            }
-        } finally {
-            if (cur != null) {
-                cur.close();
-            }
-        }
-        return contactId;
-    }
-
-    public String getContactDisplayNameByNumber(String number) {
-        Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
-        String name = "?";
-        String contactId = "";
-        ContentResolver contentResolver = getContentResolver();
-        Cursor contactLookup = contentResolver.query(uri, new String[] {BaseColumns._ID,
-                ContactsContract.PhoneLookup.DISPLAY_NAME }, null, null, null);
-        try {
-            if (contactLookup != null && contactLookup.getCount() > 0) {
-                contactLookup.moveToNext();
-                name = contactLookup.getString(contactLookup.getColumnIndex(ContactsContract.Data.DISPLAY_NAME));
-                contactId = contactLookup.getString(contactLookup.getColumnIndex(BaseColumns._ID));
-            }
-        } finally {
-            if (contactLookup != null) {
-                contactLookup.close();
-            }
-        }
-        return contactId;
-    }
 
     public String getContactByWebsite(String web, Context mContext) {
         String[] projection = new String[] { ContactsContract.CommonDataKinds.Website.URL, ContactsContract.CommonDataKinds.Website.TYPE };
@@ -888,9 +803,9 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                         .getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
                 Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI,
                         lookupKey);
-                getContentResolver().delete(uri, ContactsContract.RawContacts.CONTACT_ID + "=" + id, null);
+                mContext.getContentResolver().delete(uri, ContactsContract.RawContacts.CONTACT_ID + "=" + id, null);
             } catch (Exception e) {
-                System.out.println(e.getStackTrace());
+                //System.out.println(e.getStackTrace());
             }
         }
         return true;
@@ -906,16 +821,8 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                    //Toast toast = Toast.makeText(MainActivity.this, "permission was granted", Toast.LENGTH_SHORT);
-                    //toast.show();
                 } else {
                     finish();
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    //Toast toast = Toast.makeText(MainActivity.this, "permission denied", Toast.LENGTH_SHORT);
-                    //toast.show();
                 }
                 return;
             }
@@ -954,11 +861,9 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         if(validate.equals("1")) {
             fab.setEnabled(true);
             fab.setClickable(true);
-            //Toast.makeText(getApplicationContext(), "tem permissões", Toast.LENGTH_LONG).show();
+
         }else{
-            //fab.setEnabled(false);
-            //fab.setClickable(false);
-            //Toast.makeText(getApplicationContext(), "Não tem permissões", Toast.LENGTH_LONG).show();
+
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 @Override
@@ -982,12 +887,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             mContext = context;
             mActivity = activity;
         }
-        /*
-        @Override
-        protected void onPreExecute() {
 
-            super.onPreExecute();
-        }*/
 
         @Override
         protected String doInBackground(String... arg0) {
@@ -1018,21 +918,12 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
                 JSONObject jsonResponse = new JSONObject(response);
                 validate = jsonResponse.getString("ativo");
-                //validate = "0";
+
                 SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(mContext);
                 SharedPreferences.Editor edit = sett.edit();
                 edit.putString("validar", validate);
 
-
-                //String id_cont = getContactByWebsite("");
-
                 JSONObject empr = jsonResponse.optJSONObject("empresa");
-
-                //t_emp = (TextView)findViewById(R.id.textView9);
-                //t_nome = (TextView)findViewById(R.id.textView8);
-                //t_nume = (TextView)findViewById(R.id.textView7);
-                //t_carg = (TextView)findViewById(R.id.textView11);
-                //t_dep = (TextView)findViewById(R.id.textView10);
 
                 getContactByWebsite("", mContext);
 
@@ -1042,6 +933,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                     setText2(t_nume,empr.getString("ID"),mContext);
                     setText2(t_carg,empr.getString("funcao"),mContext);
                     setText2(t_dep,empr.getString("departamento"),mContext);
+                    setText2(t_nif,nif,mContext);
 
                     edit.putString("empresa",empr.getString("empresa"));
                     edit.putString("nome", empr.getString("nome"));
@@ -1073,9 +965,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                             while (keys2.hasNext()) {
                                 String dynamicKey2 = (String) keys2.next();
                                 JSONObject line2 = jja.getJSONObject(dynamicKey2);
-                                //for (int i = 0; i < jja.length(); i++) {
-                                //String a = jsonArray.getString(i);
-                                //JSONObject resultJsonObject = new JSONObject(a);
 
                                 Contact c = new Contact((String) line2.get("id"), (String) line2.get("type"), (String) line2.get("type_name"), (String) line2.get("contact_name"), (String) line2.get("contact_number"), (String) line2.get("ativo_contact"));
                                 lstObject.add(c);
@@ -1083,18 +972,29 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                                 //}
                             }
 
-                            insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo);
+                            insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo, mContext);
                         }
                     }
                     Date cDate = new Date();
                     fDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate);
                     colorDate = getResources().getColor(R.color.color6);
                 }else{
+                    nif="";
+
+                    t_emp = (TextView) ((Activity) mContext).findViewById(R.id.textView9);
+                    t_nome = (TextView) ((Activity) mContext).findViewById(R.id.textView8);
+                    t_nume = (TextView) ((Activity) mContext).findViewById(R.id.textView7);
+                    t_carg = (TextView) ((Activity) mContext).findViewById(R.id.textView11);
+                    t_dep = (TextView) ((Activity) mContext).findViewById(R.id.textView10);
+                    t_nif = (TextView) ((Activity) mContext).findViewById(R.id.textNif);
+
                     setText2(t_emp, "",mContext);
                     setText2(t_nome,"",mContext);
                     setText2(t_nume,"",mContext);
                     setText2(t_carg,"",mContext);
                     setText2(t_dep,"",mContext);
+                    setText2(t_nif,"",mContext);
+
                     colorDate = mContext.getResources().getColor(R.color.color1);
 
                     edit.putString("empresa", "");
@@ -1102,6 +1002,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                     edit.putString("ID","");
                     edit.putString("funcao", "");
                     edit.putString("departamento","");
+                    edit.putString("nif", "");
 
                     fDate = "Não Autorizado";
                 }
@@ -1119,8 +1020,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
         @SuppressLint("ResourceAsColor")
         @Override
         protected void onPostExecute(String result) {
-            //progressBar.getProgressDrawable().setColorFilter(
-                    //R.color.color6, PorterDuff.Mode.SRC_IN);
 
             String fDate = "";
             int colorDate;
@@ -1131,7 +1030,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 fDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate);
                 colorDate = mContext.getResources().getColor(R.color.color6);
 
-
+                progressStatus=0;
                 new Thread(new Runnable() {
                     public void run() {
                         while (progressStatus < 100) {
@@ -1146,9 +1045,9 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                                         TextView t_date2;
                                         Date cDate2 = new Date();
                                         String fDate2 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(cDate2);
-                                        t_date2 = (TextView) findViewById(R.id.textView4);
-                                        t_date2.setTextColor(colorDate2);
-                                        t_date2.setText(fDate2);
+                                        //t_date2 = (TextView) findViewById(R.id.textView4);
+                                        t_date.setTextColor(colorDate2);
+                                        t_date.setText(fDate2);
                                     }
                                 }
                             });
@@ -1173,30 +1072,11 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 t_date.setText(fDate);
 
             }
-            /*
-            SharedPreferences sett = PreferenceManager.getDefaultSharedPreferences(this.mActivity);
-            SharedPreferences.Editor edit = sett.edit();
-            edit.putString("data_sysnc", fDate);
-            edit.putString("color_sync", Integer.toString(colorDate));
-            edit.commit();
-            */
+
 
             super.onPostExecute(result);
             onTaskComplete(result);
         }
-        /*
-        protected void onProgressUpdate(Integer... progress) {
-            System.out.println("Contact id=" + progress);
-            //progressBar.setProgress(progress[0]);
-        }*/
-
-
-        /*
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            System.out.println("Contact id=" + values);
-            //progressBar.setProgress(values[0]);
-        }*/
 
         @Override
         protected void onProgressUpdate(Integer... values) {
@@ -1274,14 +1154,25 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                 SharedPreferences.Editor edit = sett.edit();
                 edit.putString("validar", validate);
 
-
-                //String id_cont = getContactByWebsite("");
-
                 JSONObject empr = jsonResponse.optJSONObject("empresa");
 
                 getContactByWebsite("", mContext);
 
+                //final TextView t_emp = (TextView) ((MainActivity) mContext).findViewById(R.id.textView9);
+                //final TextView t_nome = (TextView) ((MainActivity) mContext).findViewById(R.id.textView8);
+                //final TextView t_nume = (TextView) ((MainActivity) mContext).findViewById(R.id.textView7);
+                //final TextView t_carg = (TextView) ((MainActivity) mContext).findViewById(R.id.textView11);
+                //final TextView t_dep = (TextView) ((MainActivity) mContext).findViewById(R.id.textView10);
+                //final TextView t_nif = (TextView) ((MainActivity) mContext).findViewById(R.id.textNif);
+
                 if(validate.equals("1")) {
+
+                    //setText2(t_emp, empr.getString("empresa"),mContext);
+                    //setText2(t_nome,empr.getString("nome"),mContext);
+                    //setText2(t_nume,empr.getString("ID"),mContext);
+                    //setText2(t_carg,empr.getString("funcao"),mContext);
+                    //setText2(t_dep,empr.getString("departamento"),mContext);
+                    //setText2(t_nif,nif,mContext);
 
                     edit.putString("empresa",empr.getString("empresa"));
                     edit.putString("nome", empr.getString("nome"));
@@ -1313,9 +1204,6 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                             while (keys2.hasNext()) {
                                 String dynamicKey2 = (String) keys2.next();
                                 JSONObject line2 = jja.getJSONObject(dynamicKey2);
-                                //for (int i = 0; i < jja.length(); i++) {
-                                //String a = jsonArray.getString(i);
-                                //JSONObject resultJsonObject = new JSONObject(a);
 
                                 Contact c = new Contact((String) line2.get("id"), (String) line2.get("type"), (String) line2.get("type_name"), (String) line2.get("contact_name"), (String) line2.get("contact_number"), (String) line2.get("ativo_contact"));
                                 lstObject.add(c);
@@ -1323,7 +1211,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
                                 //}
                             }
 
-                            insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo);
+                            insertContact2(firstname, lastname, id, lstObject, website, empresa, departamento, cargo,mContext);
                         }
                     }
                     Date cDate = new Date();
@@ -1333,6 +1221,13 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
                     colorDate = mContext.getResources().getColor(R.color.color1);
 
+                    //setText2(t_emp, "",mContext);
+                    //setText2(t_nome,"",mContext);
+                    //setText2(t_nume,"",mContext);
+                    //setText2(t_carg,"",mContext);
+                   // setText2(t_dep,"",mContext);
+                    //setText2(t_nif,"",mContext);
+                    nif="";  
                     edit.putString("empresa", "");
                     edit.putString("nome", "");
                     edit.putString("ID","");
@@ -1349,6 +1244,7 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+            
             return validate;
         }
 
@@ -1366,4 +1262,5 @@ public class MainActivity extends AppCompatActivity implements TaskCompleted {
 
 
     }
+    
 }

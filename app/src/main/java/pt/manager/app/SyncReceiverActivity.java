@@ -1,9 +1,8 @@
-package pt.manager.maneger;
+package pt.manager.app;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -27,7 +26,6 @@ public class SyncReceiverActivity extends Service {
 
     @Override
     public IBinder onBind(Intent arg0) {
-        // TODO Auto-generated method stub
         return null;
     }
 

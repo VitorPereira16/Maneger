@@ -1,6 +1,4 @@
-package pt.manager.maneger;
-
-import android.util.Log;
+package pt.manager.app;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

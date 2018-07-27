@@ -1,4 +1,4 @@
-package pt.manager.maneger;
+package pt.manager.app;
 
 /**
  * Created by Vitor on 27/11/2017.

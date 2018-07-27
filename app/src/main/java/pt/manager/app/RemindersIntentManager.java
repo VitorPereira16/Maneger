@@ -1,14 +1,9 @@
-package pt.manager.maneger;
+package pt.manager.app;
 
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.widget.Toast;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.GregorianCalendar;
+import android.util.Log;
 
 
 public class RemindersIntentManager
@@ -43,15 +38,15 @@ public class RemindersIntentManager
 
     }
 
-    public PendingIntent getChristmasIntent()
+    public PendingIntent getChristmasIntent(Context mmContext)
     {
 
-
-        Intent intentAlarm = new Intent( mContext,  pt.manager.maneger.AlarmReceiver.class );
+        Log.v("CRIS", mmContext+"");
+        Intent intentAlarm = new Intent( mmContext,  pt.manager.app.AlarmReceiver.class );
         intentAlarm.putExtra( "reminder", "Christmas Happies!" );
         intentAlarm.putExtra( "code", ( CHRISTMAS + 1 ) * 133 );
 
-        reminderIntents[ CHRISTMAS ] = PendingIntent.getBroadcast( mContext, CHRISTMAS, intentAlarm, PendingIntent.FLAG_UPDATE_CURRENT );
+        reminderIntents[ CHRISTMAS ] = PendingIntent.getBroadcast( mmContext, CHRISTMAS, intentAlarm, PendingIntent.FLAG_UPDATE_CURRENT );
 
         return reminderIntents[ CHRISTMAS ];
 
@@ -61,7 +56,7 @@ public class RemindersIntentManager
 
     public PendingIntent getDotaIntent()
     {
-        Intent intentAlarm = new Intent( mContext, pt.manager.maneger.AlarmReceiver.class );
+        Intent intentAlarm = new Intent( mContext, pt.manager.app.AlarmReceiver.class );
         intentAlarm.putExtra( "reminder", "Aegis is up for grabs! The Internationals starts now." );
         intentAlarm.putExtra( "code", ( THE_INTERNATIONALS + 1 ) * 133 );
 
@@ -75,7 +70,7 @@ public class RemindersIntentManager
 
     public PendingIntent getSpecificIntent()
     {
-        Intent intentAlarm = new Intent( mContext,  pt.manager.maneger.AlarmReceiver.class );
+        Intent intentAlarm = new Intent( mContext,  pt.manager.app.AlarmReceiver.class );
         intentAlarm.putExtra( "reminder", "You see but you do not observe." );
         intentAlarm.putExtra( "code", ( SPECIFIC_EVENT + 1 ) * 133 );
 

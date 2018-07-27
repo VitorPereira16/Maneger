@@ -1,4 +1,4 @@
-package pt.manager.maneger;
+package pt.manager.app;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("pt.manager.maneger", appContext.getPackageName());
+        assertEquals("pt.manager.app", appContext.getPackageName());
     }
 }

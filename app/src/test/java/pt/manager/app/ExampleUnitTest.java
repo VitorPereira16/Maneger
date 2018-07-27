@@ -1,4 +1,4 @@
-package pt.manager.maneger;
+package pt.manager.app;
 
 import org.junit.Test;
 
